@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 uint32_t bcVersion()
 {
@@ -17,7 +18,7 @@ bcStatus_t bcCoreNew(BC_CORE* pCore)
     return BC_INVALID_ARG;
   }
 
-  BC_CORE result = malloc(sizeof(struct bcCore_t));
+  BC_CORE result = (BC_CORE) malloc(sizeof(struct bcCore_t));
   if (result == NULL)
   {
     return BC_NO_MEMORY;
@@ -75,7 +76,7 @@ bcDataType_t bcPromote(const BC_VALUE a, const BC_VALUE b)
   }
 }
 
-static bcStatus_t bcValueBinaryOperator(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result)
+static bcStatus_t bcValueBinaryOperatorAlgebra(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result)
 {
   assert((result != NULL) && (a != NULL) && (b != NULL));
 
@@ -110,6 +111,9 @@ static bcStatus_t bcValueBinaryOperator(const BC_VALUE a, const BC_VALUE b, uint
         case BC_DIV:
           aVal /= bVal;
           break;
+        case BC_MOD:
+          aVal %= bVal;
+          break;
         default:
           return BC_NOT_IMPLEMENTED;
         }
@@ -136,12 +140,173 @@ static bcStatus_t bcValueBinaryOperator(const BC_VALUE a, const BC_VALUE b, uint
         case BC_DIV:
           aVal /= bVal;
           break;
+        case BC_MOD:
+          aVal = fmod(aVal, bVal);
+          break;
         default:
           return BC_NOT_IMPLEMENTED;
         }
         *result = bcValueNumber(aVal);
         return BC_OK;
       }
+  }
+}
+
+static bcStatus_t bcValueBinaryOperatorCompare(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result)
+{
+  assert((result != NULL) && (a != NULL) && (b != NULL));
+
+  bcDataType_t promotedType = bcPromote(a, b);
+  if (promotedType == BC_NULL)
+  {
+    return BC_NOT_IMPLEMENTED;
+  }
+
+  switch (promotedType)
+  {
+    case BC_NULL:
+    default:
+      return BC_NOT_IMPLEMENTED;
+    case BC_INTEGER:
+      {
+        int64_t aVal;
+        int64_t bVal;
+        int64_t cmpResult;
+        bcValueAsInteger(a, &aVal);
+        bcValueAsInteger(b, &bVal);
+        switch (binop)
+        {
+        case BC_EQ:
+          cmpResult = (aVal == bVal);
+          break;
+        case BC_NEQ:
+          cmpResult = (aVal != bVal);
+          break;
+        case BC_GR:
+          cmpResult = (aVal > bVal);
+          break;
+        case BC_LS:
+          cmpResult = (aVal < bVal);
+          break;
+        case BC_GRE:
+          cmpResult = (aVal >= bVal);
+          break;
+        case BC_LSE:
+          cmpResult = (aVal <= bVal);
+          break;
+        default:
+          return BC_NOT_IMPLEMENTED;
+        }
+        *result = bcValueInteger(cmpResult);
+        return BC_OK;
+      }
+    case BC_NUMBER:
+      {
+        double aVal;
+        double bVal;
+        int64_t cmpResult;
+        bcValueAsNumber(a, &aVal);
+        bcValueAsNumber(b, &bVal);
+        switch (binop)
+        {
+        case BC_EQ:
+          cmpResult = (aVal == bVal);
+          break;
+        case BC_NEQ:
+          cmpResult = (aVal != bVal);
+          break;
+        case BC_GR:
+          cmpResult = (aVal > bVal);
+          break;
+        case BC_LS:
+          cmpResult = (aVal < bVal);
+          break;
+        case BC_GRE:
+          cmpResult = (aVal >= bVal);
+          break;
+        case BC_LSE:
+          cmpResult = (aVal <= bVal);
+          break;
+        default:
+          return BC_NOT_IMPLEMENTED;
+        }
+        *result = bcValueInteger(cmpResult);
+        return BC_OK;
+      }
+  }
+}
+
+static bcStatus_t bcValueBinaryOperatorLogicBitwise(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result)
+{
+  assert((result != NULL) && (a != NULL) && (b != NULL));
+
+  if ((a->type != BC_INTEGER) || (b->type != BC_INTEGER))
+  {
+    return BC_NOT_IMPLEMENTED;
+  }
+  int64_t aVal;
+  int64_t bVal;
+
+  bcValueAsInteger(a, &aVal);
+  bcValueAsInteger(b, &bVal);
+
+  switch (binop)
+  {
+  case BC_LND:
+    aVal = (aVal != 0) && (bVal != 0);
+    break;
+  case BC_LOR:
+    aVal = (aVal != 0) || (bVal != 0);
+    break;
+  case BC_BND:
+    aVal &= bVal;
+    break;
+  case BC_BOR:
+    aVal |= bVal;
+    break;
+  case BC_XOR:
+    aVal ^= bVal;
+    break;
+  case BC_BLS:
+    aVal = aVal << bVal;
+    break;
+  case BC_BRS:
+    aVal = aVal >> bVal;
+    break;
+  default:
+    return BC_NOT_IMPLEMENTED;
+  }
+  *result = bcValueInteger(aVal);
+  return BC_OK;
+}
+
+static bcStatus_t bcValueBinaryOperator(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result)
+{
+  switch (binop)
+  {
+  case BC_ADD:
+  case BC_SUB:
+  case BC_MUL:
+  case BC_DIV:
+  case BC_MOD:
+    return bcValueBinaryOperatorAlgebra(a, b, binop, result);
+  case BC_EQ:
+  case BC_NEQ:
+  case BC_GR:
+  case BC_LS:
+  case BC_GRE:
+  case BC_LSE:
+    return bcValueBinaryOperatorCompare(a, b, binop, result);
+  case BC_LND:
+  case BC_LOR:
+  case BC_BND:
+  case BC_BOR: 
+  case BC_XOR:
+  case BC_BLS:
+  case BC_BRS:
+    return bcValueBinaryOperatorLogicBitwise(a, b, binop, result);
+  default:
+    return BC_NOT_IMPLEMENTED;
   }
 }
 
@@ -170,6 +335,20 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
     case BC_SUB:
     case BC_MUL:
     case BC_DIV:
+    case BC_MOD:
+    case BC_EQ:
+    case BC_NEQ:
+    case BC_GR:
+    case BC_LS:
+    case BC_GRE:
+    case BC_LSE:
+    case BC_LND:
+    case BC_LOR:
+    case BC_BND:
+    case BC_BOR: 
+    case BC_XOR:
+    case BC_BLS:
+    case BC_BRS:
       {
         if ((core->stack.top - core->stack.bottom) < 2)
         {
@@ -247,6 +426,24 @@ BCAPI bcStatus_t bcCoreTop(const BC_CORE core, BC_VALUE* val)
   *val = core->stack.top[-1];
   return BC_OK;
 }
+
+BCAPI bcStatus_t bcCorePop(BC_CORE core)
+{
+  if (core == NULL)
+  {
+    return BC_INVALID_ARG;
+  }
+
+  if (core->stack.top == core->stack.bottom)
+  {
+    return BC_UNDERFLOW;
+  }
+
+  bcValueCleanup(core->stack.top[-1]);
+  --core->stack.top;
+  return BC_OK;
+}
+
 
 bcStatus_t bcCodeStreamInit(bcCodeStream_t* cs)
 {

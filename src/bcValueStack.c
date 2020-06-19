@@ -48,7 +48,7 @@ bcStatus_t bcValueStackPush(bcValueStack_t* pStack, BC_VALUE value)
     return BC_INVALID_ARG;
   }
 
-  if ((pStack->top-pStack->bottom) >= pStack->total)
+  if ((size_t)(pStack->top-pStack->bottom) >= pStack->total)
   {
     return BC_OVERFLOW;
   } 

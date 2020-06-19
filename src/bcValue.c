@@ -120,3 +120,17 @@ BCAPI bcStatus_t bcValueAsNumber(const BC_VALUE val, double* oval)
     return BC_NOT_IMPLEMENTED;
   }  
 }
+
+BCAPI int bcValuePrint(FILE* stream, const BC_VALUE val)
+{
+  switch (val->type)
+  {
+  case BC_INTEGER:
+    return fprintf(stream, "%ld", ((const bcInteger_t*)val)->data);
+  case BC_NUMBER:
+    return fprintf(stream, "%g", ((const bcNumber_t*)val)->data);
+  default:
+    return fprintf(stream, "%s", "NOT-IMPLEMENTED");
+  }
+
+}

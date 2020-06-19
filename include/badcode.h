@@ -11,6 +11,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 #define BCAPI extern "C"
@@ -106,8 +107,16 @@ BCAPI bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp);
 
 /**
  * Get value on top of stack.
+ * 
+ * @param core[in] valid core to get value on top of stack
+ * @param pVal[out] pointer where to store value from stack.
  */
 BCAPI bcStatus_t bcCoreTop(const BC_CORE core, BC_VALUE* pVal);
+
+/**
+ * Remove value from stack.
+ */
+BCAPI bcStatus_t bcCorePop(BC_CORE core);
 
 /**
  * Box an integer.
@@ -162,5 +171,15 @@ BCAPI BC_VALUE bcValueNumber(double val);
  * @return BC_OK if completed sucessfuly, error code otherwise
  */
 BCAPI bcStatus_t bcValueAsNumber(const BC_VALUE val, double* oval);
+
+/**
+ * Print value to stream.
+ *
+ * @param[in] stream valid stream 
+ * @param[in] val valid value to print
+ * 
+ * @return total bytes printer, or -1 on error
+ */
+BCAPI int bcValuePrint(FILE* stream, const BC_VALUE val);
 
 #endif /* DECI_SPACE_BADCODE_HEADER */

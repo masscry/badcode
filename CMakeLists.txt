@@ -106,18 +106,29 @@ add_custom_command(
 add_library(badsetup INTERFACE)
 
 target_compile_options(badsetup INTERFACE
-  $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wconversion -fdiagnostics-color=always -pedantic -Werror=implicit-function-declaration>
-  $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wconversion -fcolor-diagnostics -pedantic -Werror=implicit-function-declaration>
+  $<$<C_COMPILER_ID:GNU>:-Wall -Wextra -Wconversion -fdiagnostics-color=always -pedantic -Werror=implicit-function-declaration>
+  $<$<C_COMPILER_ID:Clang>:-Wall -Wextra -Wconversion -fcolor-diagnostics -pedantic -Werror=implicit-function-declaration>
 )
+
+if (UNIX)
+  target_link_libraries(badsetup INTERFACE
+    m
+  )
+
+  target_compile_definitions(badsetup INTERFACE
+    _GNU_SOURCE
+  )
+
+endif(UNIX)
 
 if (WIN32)
 
-  target_compile_definitions(badbaby INTERFACE
+  target_compile_definitions(badsetup INTERFACE
     _USE_MATH_DEFINES
     _CRT_SECURE_NO_WARNINGS
   )
 
-  target_compile_options(badbaby INTERFACE
+  target_compile_options(badsetup INTERFACE
     /source-charset:utf-8
   )
 
@@ -156,17 +167,17 @@ target_include_directories(badcode
 )
 
 target_link_libraries(badcode
-  PRIVATE
+  PUBLIC
     badsetup
 )
 
 # TESTS
 
-add_executable(basic
-  tests/basic.c
+add_executable(badrepl
+  tests/badrepl.c
 )
 
-target_link_libraries(basic
+target_link_libraries(badrepl
   PRIVATE
     badcode
 )

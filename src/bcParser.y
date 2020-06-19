@@ -4,8 +4,16 @@
 %extra_argument { bcCodeStream_t* cs }
 %start_symbol program
 
+%left LOR.
+%left LND.
+%left BOR.
+%left XOR.
+%left BND.
+%nonassoc EQ NEQ.
+%nonassoc GR GRE LS LSE.
+%left BLS BRS.
 %left ADD SUB.
-%left DIV MUL.
+%left DIV MUL MOD.
 
 %include {
   #include <bcPrivate.h>
@@ -19,13 +27,6 @@
   fprintf(stderr, "Syntax Error!\n");
 }
 
-program ::= expr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
-
-expr ::= expr SUB expr. { bcCodeStreamAppendOpcode(cs, BC_SUB); }
-expr ::= expr ADD expr. { bcCodeStreamAppendOpcode(cs, BC_ADD); }
-expr ::= expr MUL expr. { bcCodeStreamAppendOpcode(cs, BC_MUL); }
-expr ::= expr DIV expr. { bcCodeStreamAppendOpcode(cs, BC_DIV); }
-
 expr ::= CONSTANT(VALUE). {
   uint8_t conCode;
 
@@ -33,6 +34,27 @@ expr ::= CONSTANT(VALUE). {
   bcCodeStreamAppendOpcode(cs, BC_PSH);
   bcCodeStreamAppendOpcode(cs, conCode);
 }
+expr ::= expr LOR expr. { bcCodeStreamAppendOpcode(cs, BC_LOR); }
+expr ::= expr LND expr. { bcCodeStreamAppendOpcode(cs, BC_LND); }
+expr ::= expr BOR expr. { bcCodeStreamAppendOpcode(cs, BC_BOR); }
+expr ::= expr XOR expr. { bcCodeStreamAppendOpcode(cs, BC_XOR); }
+expr ::= expr BND expr. { bcCodeStreamAppendOpcode(cs, BC_BND); }
+expr ::= expr EQ  expr. { bcCodeStreamAppendOpcode(cs, BC_EQ);  }
+expr ::= expr NEQ expr. { bcCodeStreamAppendOpcode(cs, BC_NEQ); }
+expr ::= expr GR  expr. { bcCodeStreamAppendOpcode(cs, BC_GR);  }
+expr ::= expr GRE expr. { bcCodeStreamAppendOpcode(cs, BC_GRE); }
+expr ::= expr LS  expr. { bcCodeStreamAppendOpcode(cs, BC_LS);  }
+expr ::= expr LSE expr. { bcCodeStreamAppendOpcode(cs, BC_LSE); }
+expr ::= expr BLS expr. { bcCodeStreamAppendOpcode(cs, BC_BLS); }
+expr ::= expr BRS expr. { bcCodeStreamAppendOpcode(cs, BC_BRS); }
+expr ::= expr SUB expr. { bcCodeStreamAppendOpcode(cs, BC_SUB); }
+expr ::= expr ADD expr. { bcCodeStreamAppendOpcode(cs, BC_ADD); }
+expr ::= expr MUL expr. { bcCodeStreamAppendOpcode(cs, BC_MUL); }
+expr ::= expr DIV expr. { bcCodeStreamAppendOpcode(cs, BC_DIV); }
+expr ::= expr MOD expr. { bcCodeStreamAppendOpcode(cs, BC_MOD); }
+
+program ::= expr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
+program ::= .     { bcCodeStreamAppendOpcode(cs, BC_HALT); }
 
 %code {
 

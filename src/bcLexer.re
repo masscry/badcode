@@ -9,6 +9,20 @@
     sub = [-];
     mul = [*];
     div = [/];
+    mod = [%];
+    eq = [=];
+    neq = [!][=];
+    gr = [>];
+    ls = [<];
+    gre = [>][=];
+    lse = [<][=];
+    lnd = [&][&];
+    lor = [|][|];
+    bnd = [&];
+    bor = [|];
+    xor = [\^];
+    bls = [<][<];
+    brs = [>][>];
     frac = [0-9]* "." [0-9]+ | [0-9]+ ".";
     exp = 'e' [+-]? [0-9]+;
     number = (frac exp? | [0-9]+ exp);
@@ -72,6 +86,76 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       return TOK_DIV;
     }
 
+    mod {
+      *tail = YYCURSOR;
+      return TOK_MOD;
+    }
+
+    eq  {
+      *tail = YYCURSOR;
+      return TOK_EQ;
+    }
+
+    neq {
+      *tail = YYCURSOR;
+      return TOK_NEQ;
+    }
+
+    gr {
+      *tail = YYCURSOR;
+      return TOK_GR;
+    }
+
+    ls {
+      *tail = YYCURSOR;
+      return TOK_LS;
+    }
+
+    gre {
+      *tail = YYCURSOR;
+      return TOK_GRE;
+    }
+
+    lse {
+      *tail = YYCURSOR;
+      return TOK_LSE;
+    }
+
+    lnd {
+      *tail = YYCURSOR;
+      return TOK_LND;
+    }
+
+    lor {
+      *tail = YYCURSOR;
+      return TOK_LOR;
+    }
+
+    bnd {
+      *tail = YYCURSOR;
+      return TOK_BND;
+    }
+
+    bor {
+      *tail = YYCURSOR;
+      return TOK_BOR;
+    }
+
+    xor {
+      *tail = YYCURSOR;
+      return TOK_XOR;
+    }
+
+    bls {
+      *tail = YYCURSOR;
+      return TOK_BLS;
+    }
+
+    brs {
+      *tail = YYCURSOR;
+      return TOK_BRS;
+    }
+
     spaces {
       // Skips any amount of spaces, tabs and newlines.
       head = YYCURSOR;
@@ -81,8 +165,8 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
     integer {
       // Simple C integer.
 
-      char* tmpInteger = (char*) malloc((YYCURSOR - head) + 1);
-      memcpy(tmpInteger, head, (YYCURSOR - head)); // copy token symbols to temp buffer
+      char* tmpInteger = (char*) malloc((size_t)((YYCURSOR - head) + 1));
+      memcpy(tmpInteger, head, (size_t)(YYCURSOR - head)); // copy token symbols to temp buffer
       tmpInteger[YYCURSOR - head] = 0;
       *pData = bcValueInteger(strtoll(tmpInteger, NULL, 10));
       // currently there are no checks for strtoll produced a valid integer.
@@ -96,8 +180,8 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
     number {
       // Simple C float
 
-      char* tmpNumber = (char*) malloc((YYCURSOR - head) + 1);
-      memcpy(tmpNumber, head, (YYCURSOR - head)); // copy token symbols to temp buffer
+      char* tmpNumber = (char*) malloc((size_t)((YYCURSOR - head) + 1));
+      memcpy(tmpNumber, head, (size_t)(YYCURSOR - head)); // copy token symbols to temp buffer
       tmpNumber[YYCURSOR - head] = 0;
       *pData = bcValueNumber(strtod(tmpNumber, NULL));
       // currently there are no checks for strtod produced a valid number
