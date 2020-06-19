@@ -27,13 +27,9 @@
   fprintf(stderr, "Syntax Error!\n");
 }
 
-expr ::= CONSTANT(VALUE). {
-  uint8_t conCode;
+program ::= .     { bcCodeStreamAppendOpcode(cs, BC_HALT); }
+program ::= expr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
 
-  bcCodeStreamAppendConstant(cs, bcValueCopy(VALUE), &conCode);
-  bcCodeStreamAppendOpcode(cs, BC_PSH);
-  bcCodeStreamAppendOpcode(cs, conCode);
-}
 expr ::= expr LOR expr. { bcCodeStreamAppendOpcode(cs, BC_LOR); }
 expr ::= expr LND expr. { bcCodeStreamAppendOpcode(cs, BC_LND); }
 expr ::= expr BOR expr. { bcCodeStreamAppendOpcode(cs, BC_BOR); }
@@ -52,9 +48,15 @@ expr ::= expr ADD expr. { bcCodeStreamAppendOpcode(cs, BC_ADD); }
 expr ::= expr MUL expr. { bcCodeStreamAppendOpcode(cs, BC_MUL); }
 expr ::= expr DIV expr. { bcCodeStreamAppendOpcode(cs, BC_DIV); }
 expr ::= expr MOD expr. { bcCodeStreamAppendOpcode(cs, BC_MOD); }
+expr ::= OPENBR expr CLOSEBR. { }
 
-program ::= expr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
-program ::= .     { bcCodeStreamAppendOpcode(cs, BC_HALT); }
+expr ::= CONSTANT(VALUE). {
+  uint8_t conCode;
+
+  bcCodeStreamAppendConstant(cs, bcValueCopy(VALUE), &conCode);
+  bcCodeStreamAppendOpcode(cs, BC_PSH);
+  bcCodeStreamAppendOpcode(cs, conCode);
+}
 
 %code {
 
