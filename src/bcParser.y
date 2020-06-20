@@ -4,6 +4,7 @@
 %extra_argument { bcCodeStream_t* cs }
 %start_symbol program
 
+%right SET.
 %left LOR.
 %left LND.
 %left BOR.
@@ -32,6 +33,7 @@
 program ::= .     { bcCodeStreamAppendOpcode(cs, BC_HALT); }
 program ::= expr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
 
+expr ::= ID SET expr. { bcCodeStreamAppendOpcode(cs, BC_POP); }
 expr ::= expr LOR expr. { bcCodeStreamAppendOpcode(cs, BC_LOR); }
 expr ::= expr LND expr. { bcCodeStreamAppendOpcode(cs, BC_LND); }
 expr ::= expr BOR expr. { bcCodeStreamAppendOpcode(cs, BC_BOR); }

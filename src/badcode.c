@@ -440,6 +440,15 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         }
       }
       break;
+    case BC_POP:
+      {
+        bcStatus_t status = bcValueStackPop(&core->stack);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+      }
+      break;
     case BC_ADD:
     case BC_SUB:
     case BC_MUL:

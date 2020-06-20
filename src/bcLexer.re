@@ -2,37 +2,39 @@
 
 /*!max:re2c*/
 /*!re2c
+    id = [a-zA-Z_][a-zA-Z_0-9]*;
     digit = [0-9];
     integer = digit+;
     spaces = [\t\n ]+;
-    add = [+];
-    sub = [-];
-    mul = [*];
-    div = [/];
-    mod = [%];
-    eq = [=];
-    neq = [!][=];
-    gr = [>];
-    ls = [<];
-    gre = [>][=];
-    lse = [<][=];
-    lnd = [&][&];
-    lor = [|][|];
-    bnd = [&];
-    bor = [|];
-    xor = [\^];
-    bls = [<][<];
-    brs = [>][>];
-    openbr = [(];
-    closebr = [)];
-    lnot = [!];
-    bnot = [~];
+    add = '+';
+    sub = '-';
+    mul = '*';
+    div = '/';
+    mod = '%';
+    eq = '=';
+    neq = '!=';
+    gr = '>';
+    ls = '<';
+    gre = '>=';
+    lse = '<=';
+    lnd = '&&';
+    lor = '||';
+    bnd = '&';
+    bor = '|';
+    xor = '^';
+    bls = '<<';
+    brs = '>>';
+    openbr = '(';
+    closebr = ')';
+    lnot = '!';
+    bnot = '~';
     frac = [0-9]* "." [0-9]+ | [0-9]+ ".";
     exp = 'e' [+-]? [0-9]+;
     number = (frac exp? | [0-9]+ exp);
     end = [\x00];
     int = 'int';
     num = 'num';
+    set = '<-';
 */
 
 #include <bcParser.h>
@@ -61,6 +63,18 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       fprintf(stderr, "Unknown Symbol: '%c' (0x%02x)\n", *head, *head);
       *tail = head;
       return 0;
+    }
+
+    id {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_ID;
+    }
+
+    set {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_SET;
     }
 
     int {
