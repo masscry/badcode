@@ -72,6 +72,8 @@ typedef enum bcStatus_t
   BC_DIVIDE_BY_ZERO,     /**< Divide by Zero error */
   BC_CANT_CONVERT,       /**< Conversion failed */
   BC_TOO_SMALL,          /**< Buffer is to small */
+  BC_INVALID_ID,         /**< Invalid ID */
+  BC_NOT_DEFINED,        /**< Variable is not defined */
   BC_STATUS_TOTAL        /**< Total status codes */
 } bcStatus_t;
 

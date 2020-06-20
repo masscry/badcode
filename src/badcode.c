@@ -11,6 +11,94 @@ uint32_t bcVersion()
   return BC_VER_FULL;
 }
 
+int bcCompareGlobals(const void* a,const void* b)
+{
+  const BC_GLOBAL* aVal = (const BC_GLOBAL*)a;
+  const BC_GLOBAL* bVal = (const BC_GLOBAL*)b;
+  return strcmp((*aVal)->name, (*bVal)->name);
+}
+
+static BC_GLOBAL bcGlobalNew(const char* name, const BC_VALUE value)
+{
+  assert(name != NULL);
+
+  size_t nameLen = strlen(name) + 1;
+
+  BC_GLOBAL result = (BC_GLOBAL) malloc(sizeof(bcGlobalVar_t)+nameLen);
+  if (result == NULL)
+  {
+    return NULL;
+  }
+
+  result->value = bcValueCopy(value);
+  memcpy(result->name, name, nameLen);
+  return result;
+}
+
+static void bcGlobalDelete(BC_GLOBAL global)
+{
+  if(global != NULL)
+  {
+    bcValueCleanup(global->value);
+    free(global);
+  }
+}
+
+bcStatus_t bcCoreSetGlobal(BC_CORE core, const char* name, const BC_VALUE value)
+{
+  BC_GLOBAL newGlobalVal = bcGlobalNew(name, value);
+  if (newGlobalVal == NULL)
+  {
+    return BC_NO_MEMORY;
+  }
+
+  BC_GLOBAL* itemInArray = bsearch(&newGlobalVal, core->globals, core->globalSize, sizeof(BC_GLOBAL), bcCompareGlobals);
+  if (itemInArray != NULL)
+  {
+    bcGlobalDelete(*itemInArray);
+    *itemInArray = newGlobalVal;
+    return BC_OK;
+  }
+
+  if (core->globalSize == core->globalCap)
+  {
+    BC_GLOBAL* newGlobals = (BC_GLOBAL*) calloc(core->globalCap*3/2, sizeof(BC_GLOBAL));
+    if (newGlobals == NULL)
+    {
+      bcGlobalDelete(newGlobalVal);
+      return BC_NO_MEMORY;
+    }
+
+    memcpy(newGlobals, core->globals, core->globalCap*sizeof(BC_GLOBAL));
+    free(core->globals);
+
+    core->globals = newGlobals;
+    core->globalCap = core->globalCap*3/2;
+  }
+
+  core->globals[core->globalSize++] = newGlobalVal;
+  qsort(core->globals, core->globalSize, sizeof(BC_GLOBAL), bcCompareGlobals);
+  return BC_OK;
+}
+
+static BC_VALUE bcCoreGetGlobal(BC_CORE core, const char* name)
+{
+  BC_GLOBAL keyGlobal = bcGlobalNew(name, NULL);
+  if (keyGlobal == NULL)
+  {
+    return NULL;
+  }
+
+  BC_GLOBAL* itemInArray = bsearch(&keyGlobal, core->globals, core->globalSize, sizeof(BC_GLOBAL), bcCompareGlobals);
+  if (itemInArray != NULL)
+  {
+    bcGlobalDelete(keyGlobal);
+    return bcValueCopy((*itemInArray)->value);
+  }
+  bcGlobalDelete(keyGlobal);
+  return NULL;
+}
+
 bcStatus_t bcCoreNew(BC_CORE* pCore)
 {
   if (pCore == NULL)
@@ -31,6 +119,16 @@ bcStatus_t bcCoreNew(BC_CORE* pCore)
     return status;
   }
 
+  result->globalCap = BC_CORE_GLOBAL_INITIAL_CAP;
+  result->globalSize = 0;
+  result->globals = (BC_GLOBAL*) calloc(BC_CORE_GLOBAL_INITIAL_CAP, sizeof(BC_GLOBAL));
+  if (result->globals == NULL)
+  {
+    bcValueStackCleanup(&result->stack);
+    free(result);
+    return BC_NO_MEMORY;
+  }
+
   *pCore = result;
   return BC_OK;
 }
@@ -39,6 +137,12 @@ void bcCoreDelete(BC_CORE core)
 {
   if (core != NULL)
   {
+    for (BC_GLOBAL* cursor = core->globals, *end = core->globals + core->globalSize; cursor != end; ++cursor)
+    {
+      bcGlobalDelete(*cursor);
+    }
+    free(core->globals);
+
     bcValueStackCleanup(&core->stack);
     free(core);
   }
@@ -406,6 +510,50 @@ static bcStatus_t bcValueUnaryOperator(const BC_VALUE a, uint8_t unop, BC_VALUE*
   }
 }
 
+static const char* bcOpcodeString(uint8_t opcode)
+{
+  switch (opcode)
+  {
+  case BC_HALT: return "HALT";/**< Halt VM Execution */
+  case BC_PSH: return "PSH"; /**< push(A) */
+  case BC_POP: return "POP"; /**< pop() */
+  case BC_ADD: return "ADD"; /**< A + B */
+  case BC_SUB: return "SUB"; /**< A - B */
+  case BC_MUL: return "MUL"; /**< A * B */
+  case BC_DIV: return "DIV"; /**< A / B */
+  case BC_MOD: return "MOD"; /**< A % B */
+  case BC_EQ: return "EQ";  /**< A = B */
+  case BC_NEQ: return "NEQ"; /**< A != B */
+  case BC_GR: return "GR";  /**< A > B */
+  case BC_LS: return "LS";  /**< A < B */
+  case BC_GRE: return "GRE"; /**< A >= B */
+  case BC_LSE: return "LSE"; /**< A <= B */
+  case BC_LND: return "LND"; /**< A && B */
+  case BC_LOR: return "LOR"; /**< A || B */
+  case BC_BND: return "BND"; /**< A & B */
+  case BC_BOR: return "BOR"; /**< A | B */ 
+  case BC_XOR: return "XOR"; /**< A ^ B */
+  case BC_BLS: return "BLS"; /**< A << B */
+  case BC_BRS: return "BRS"; /**< A >> B */
+  case BC_NEG: return "NEG"; /**< -A */
+  case BC_LNT: return "LNT"; /**< !A */
+  case BC_BNT: return "BNT"; /**< ~A */
+  case BC_INT: return "INT"; /**< (int) A */
+  case BC_NUM: return "NUM"; /**< (num) A */
+  case BC_STR: return "STR"; /**< (str) A */
+  case BC_SET: return "SET"; /**< A <- B */
+  case BC_VAL: return "VAL"; /**< ValueOf(A) */
+  case BC_IND: return "IND"; /**< A[B] */
+  case BC_ADR: return "ADR"; /**< &A */
+  case BC_ITM: return "ITM"; /**< A.B */
+  case BC_CLL: return "CLL"; /**< A() */
+  case BC_LST: return "LST"; /**< toList(A) */
+  case BC_DCT: return "DCT"; /**< toDict(A) */
+  default:
+    assert(0);
+    return "???";
+  }
+}
 
 bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 {
@@ -425,6 +573,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
   for(const uint8_t* cursor = codeStream.opcodes, *end = codeStream.opcodes + codeStream.opSize; cursor != end; ++cursor)
   {
+    fprintf(stderr, "%s\n", bcOpcodeString(*cursor));
     switch (*cursor)
     {
     case BC_HALT:
@@ -503,6 +652,32 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         bcValueCleanup(result);
       }
       break;
+    case BC_SET:
+      {
+        if ((core->stack.top - core->stack.bottom) < 2)
+        {
+          BC_CORE_RETURN(BC_UNDERFLOW);
+        }
+
+        BC_VALUE id = core->stack.top[-2];
+        if (id->type != BC_STRING)
+        {
+          BC_CORE_RETURN(BC_INVALID_ID);
+        }
+
+        BC_VALUE result = bcValueCopy(core->stack.top[-1]);
+
+        bcStatus_t status = bcCoreSetGlobal(core, ((bcString_t*)id)->data, core->stack.top[-1]);
+        if (status != BC_OK)
+        {
+          BC_CORE_RETURN(status);
+        }
+        bcValueStackPop(&core->stack);
+        bcValueStackPop(&core->stack);
+        bcValueStackPush(&core->stack, result);
+        bcValueCleanup(result);
+      }
+      break;
     case BC_NEG:
     case BC_LNT:
     case BC_BNT:
@@ -526,6 +701,30 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         if (status != BC_OK)
         {
           BC_CORE_RETURN(status);
+        }
+
+        bcValueStackPop(&core->stack);
+        bcValueStackPush(&core->stack, result);
+        bcValueCleanup(result);
+      }
+      break;
+    case BC_VAL:
+      {
+        if ((core->stack.top - core->stack.bottom) < 1)
+        {
+          BC_CORE_RETURN(BC_UNDERFLOW);
+        }
+
+        BC_VALUE id = core->stack.top[-1];
+        if (id->type != BC_STRING)
+        {
+          BC_CORE_RETURN(BC_INVALID_ID);
+        }
+
+        BC_VALUE result = bcCoreGetGlobal(core, ((bcString_t*)id)->data);
+        if (result == NULL)
+        {
+          BC_CORE_RETURN(BC_NOT_DEFINED);
         }
 
         bcValueStackPop(&core->stack);

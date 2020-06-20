@@ -33,6 +33,13 @@
 #define BC_CODE_STREAM_INITIAL_CONST_CAP (2)
 
 /**
+ * Initial capacity of global variables. It increases using CAP1 = CAP*3/2 
+ * formula when actual size exceeds current capacity, where CAP1 - new capacity,
+ * CAP - old capacity
+ */
+#define BC_CORE_GLOBAL_INITIAL_CAP (2)
+
+/**
  * Interpreter bytecodes.
  * 
  * Only few bytecodes has additional arguments passed after it.
@@ -62,13 +69,14 @@ typedef enum bcOp_t
   BC_XOR, /**< A ^ B */
   BC_BLS, /**< A << B */
   BC_BRS, /**< A >> B */
+  BC_SET, /**< A <- B */
   BC_NEG, /**< -A */
   BC_LNT, /**< !A */
   BC_BNT, /**< ~A */
   BC_INT, /**< (int) A */
   BC_NUM, /**< (num) A */
-  BC_STR, /**< toString(A) */
-  BC_SET, /**< A <- B */
+  BC_STR, /**< (str) A */
+  BC_VAL, /**< ValueOf(A) */
   BC_IND, /**< A[B] */
   BC_ADR, /**< &A */
   BC_ITM, /**< A.B */
@@ -91,7 +99,14 @@ typedef struct bcCodeStream_t
   size_t    conCap;  /**< Total consts capacity */
   size_t    conSize; /**< Total consts size     */
   BC_VALUE* cons;    /**< Constants             */
+
 } bcCodeStream_t;
+
+typedef struct bcGlobalVar_t
+{
+  BC_VALUE value;
+  char name[];
+} bcGlobalVar_t ,*BC_GLOBAL;
 
 /**
  * Interprerer evaluation core.
@@ -99,7 +114,17 @@ typedef struct bcCodeStream_t
 struct bcCore_t
 {
   bcValueStack_t stack;
+
+  size_t globalCap;
+  size_t globalSize;
+  BC_GLOBAL* globals;
 };
+
+bcStatus_t bcCoreSetGlobal(
+  BC_CORE core,
+  const char* name,
+  const BC_VALUE value
+);
 
 /**
  * Initialize code stream in-place.

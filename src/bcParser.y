@@ -31,42 +31,55 @@
 }
 
 program ::= .     { bcCodeStreamAppendOpcode(cs, BC_HALT); }
-program ::= expr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
+program ::= rightExpr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
 
-expr ::= ID SET expr. { bcCodeStreamAppendOpcode(cs, BC_POP); }
-expr ::= expr LOR expr. { bcCodeStreamAppendOpcode(cs, BC_LOR); }
-expr ::= expr LND expr. { bcCodeStreamAppendOpcode(cs, BC_LND); }
-expr ::= expr BOR expr. { bcCodeStreamAppendOpcode(cs, BC_BOR); }
-expr ::= expr XOR expr. { bcCodeStreamAppendOpcode(cs, BC_XOR); }
-expr ::= expr BND expr. { bcCodeStreamAppendOpcode(cs, BC_BND); }
-expr ::= expr EQ  expr. { bcCodeStreamAppendOpcode(cs, BC_EQ);  }
-expr ::= expr NEQ expr. { bcCodeStreamAppendOpcode(cs, BC_NEQ); }
-expr ::= expr GR  expr. { bcCodeStreamAppendOpcode(cs, BC_GR);  }
-expr ::= expr GRE expr. { bcCodeStreamAppendOpcode(cs, BC_GRE); }
-expr ::= expr LS  expr. { bcCodeStreamAppendOpcode(cs, BC_LS);  }
-expr ::= expr LSE expr. { bcCodeStreamAppendOpcode(cs, BC_LSE); }
-expr ::= expr BLS expr. { bcCodeStreamAppendOpcode(cs, BC_BLS); }
-expr ::= expr BRS expr. { bcCodeStreamAppendOpcode(cs, BC_BRS); }
-expr ::= expr SUB expr. { bcCodeStreamAppendOpcode(cs, BC_SUB); }
-expr ::= expr ADD expr. { bcCodeStreamAppendOpcode(cs, BC_ADD); }
-expr ::= expr MUL expr. { bcCodeStreamAppendOpcode(cs, BC_MUL); }
-expr ::= expr DIV expr. { bcCodeStreamAppendOpcode(cs, BC_DIV); }
-expr ::= expr MOD expr. { bcCodeStreamAppendOpcode(cs, BC_MOD); }
-expr ::= OPENBR expr CLOSEBR. 
-expr ::= LNOT expr.               { bcCodeStreamAppendOpcode(cs, BC_LNT); }
-expr ::= BNOT expr.               { bcCodeStreamAppendOpcode(cs, BC_BNT); }
-expr ::= SUB expr. [LNOT]         { bcCodeStreamAppendOpcode(cs, BC_NEG); }
-expr ::= OPENBR INT CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_INT); }
-expr ::= OPENBR NUM CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_NUM); }
-expr ::= OPENBR STR CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_STR); }
+rightExpr ::= leftExpr SET rightExpr.  { bcCodeStreamAppendOpcode(cs, BC_SET); }
+rightExpr ::= rightExpr LOR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LOR); }
+rightExpr ::= rightExpr LND rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LND); }
+rightExpr ::= rightExpr BOR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BOR); }
+rightExpr ::= rightExpr XOR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_XOR); }
+rightExpr ::= rightExpr BND rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BND); }
+rightExpr ::= rightExpr EQ  rightExpr. { bcCodeStreamAppendOpcode(cs, BC_EQ);  }
+rightExpr ::= rightExpr NEQ rightExpr. { bcCodeStreamAppendOpcode(cs, BC_NEQ); }
+rightExpr ::= rightExpr GR  rightExpr. { bcCodeStreamAppendOpcode(cs, BC_GR);  }
+rightExpr ::= rightExpr GRE rightExpr. { bcCodeStreamAppendOpcode(cs, BC_GRE); }
+rightExpr ::= rightExpr LS  rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LS);  }
+rightExpr ::= rightExpr LSE rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LSE); }
+rightExpr ::= rightExpr BLS rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BLS); }
+rightExpr ::= rightExpr BRS rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BRS); }
+rightExpr ::= rightExpr SUB rightExpr. { bcCodeStreamAppendOpcode(cs, BC_SUB); }
+rightExpr ::= rightExpr ADD rightExpr. { bcCodeStreamAppendOpcode(cs, BC_ADD); }
+rightExpr ::= rightExpr MUL rightExpr. { bcCodeStreamAppendOpcode(cs, BC_MUL); }
+rightExpr ::= rightExpr DIV rightExpr. { bcCodeStreamAppendOpcode(cs, BC_DIV); }
+rightExpr ::= rightExpr MOD rightExpr. { bcCodeStreamAppendOpcode(cs, BC_MOD); }
+rightExpr ::= OPENBR rightExpr CLOSEBR. 
+rightExpr ::= LNOT rightExpr.               { bcCodeStreamAppendOpcode(cs, BC_LNT); }
+rightExpr ::= BNOT rightExpr.               { bcCodeStreamAppendOpcode(cs, BC_BNT); }
+rightExpr ::= SUB rightExpr. [LNOT]         { bcCodeStreamAppendOpcode(cs, BC_NEG); }
+rightExpr ::= OPENBR INT CLOSEBR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_INT); }
+rightExpr ::= OPENBR NUM CLOSEBR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_NUM); }
+rightExpr ::= OPENBR STR CLOSEBR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_STR); }
 
-expr ::= CONSTANT(VALUE). {
+rightExpr ::= CONSTANT(VALUE). {
   uint8_t conCode;
 
   bcCodeStreamAppendConstant(cs, VALUE, &conCode);
   bcCodeStreamAppendOpcode(cs, BC_PSH);
   bcCodeStreamAppendOpcode(cs, conCode);
   bcValueCleanup(VALUE);
+}
+
+rightExpr ::= leftExpr. {
+  bcCodeStreamAppendOpcode(cs, BC_VAL);
+}
+
+leftExpr ::= ID(NAME). {
+  uint8_t conCode;
+
+  bcCodeStreamAppendConstant(cs, NAME, &conCode);
+  bcCodeStreamAppendOpcode(cs, BC_PSH);
+  bcCodeStreamAppendOpcode(cs, conCode);
+  bcValueCleanup(NAME);
 }
 
 %code {
