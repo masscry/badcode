@@ -49,7 +49,7 @@ bcStatus_t bcValueStackCleanup(bcValueStack_t* pStack);
  *    BC_OVERFLOW - if total stack size exceeded.
  *    BC_OK - new value added to stack
  */
-bcStatus_t bcValueStackPush(bcValueStack_t* pStack, BC_VALUE value);
+bcStatus_t bcValueStackPush(bcValueStack_t* pStack, const BC_VALUE value);
 
 /**
  * Pop value from stack.

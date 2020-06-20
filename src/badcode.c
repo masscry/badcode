@@ -409,16 +409,18 @@ static bcStatus_t bcValueUnaryOperator(const BC_VALUE a, uint8_t unop, BC_VALUE*
 
 bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 {
+  #define BC_CORE_RETURN(STATUS) coreResult = (STATUS); goto CORE_EXIT
+
   if ((core == NULL) || (code == NULL))
   {
     return BC_INVALID_ARG;
   }
 
   bcCodeStream_t codeStream;
-  bcStatus_t result = bcParseString(code, &codeStream, endp);
-  if (result != BC_OK)
+  bcStatus_t coreResult = bcParseString(code, &codeStream, endp);
+  if (coreResult != BC_OK)
   {
-    return result;
+    return coreResult;
   }
 
   for(const uint8_t* cursor = codeStream.opcodes, *end = codeStream.opcodes + codeStream.opSize; cursor != end; ++cursor)
@@ -426,30 +428,25 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
     switch (*cursor)
     {
     case BC_HALT:
-      bcCodeStreamCleanup(&codeStream);
-      return BC_OK;
+      BC_CORE_RETURN(BC_OK);
     case BC_PSH:
       {
         ++cursor;
         if (cursor == end)
         {
-          bcCodeStreamCleanup(&codeStream);
-          return BC_MALFORMED_CODE;
+          BC_CORE_RETURN(BC_MALFORMED_CODE);
         }
 
         uint8_t conID = *cursor;
         if (conID >= codeStream.conSize)
         {
-          bcCodeStreamCleanup(&codeStream);
-          return BC_CONST_NOT_FOUND;
+          BC_CORE_RETURN(BC_CONST_NOT_FOUND);
         }
 
-        BC_VALUE val = bcValueCopy(codeStream.cons[conID]);
-
-        bcStatus_t status = bcValueStackPush(&core->stack, val);
+        bcStatus_t status = bcValueStackPush(&core->stack, codeStream.cons[conID]);
         if (status != BC_OK)
         {
-          return status;
+          BC_CORE_RETURN(status);
         }
       }
       break;
@@ -458,7 +455,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         bcStatus_t status = bcValueStackPop(&core->stack);
         if (status != BC_OK)
         {
-          return status;
+          BC_CORE_RETURN(status);
         }
       }
       break;
@@ -483,7 +480,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
       {
         if ((core->stack.top - core->stack.bottom) < 2)
         {
-          return BC_UNDERFLOW;
+          BC_CORE_RETURN(BC_UNDERFLOW);
         }
 
         BC_VALUE result;
@@ -497,12 +494,13 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
         if (status != BC_OK)
         {
-          return status;
+          BC_CORE_RETURN(status);
         }
 
         bcValueStackPop(&core->stack);
         bcValueStackPop(&core->stack);
         bcValueStackPush(&core->stack, result);
+        bcValueCleanup(result);
       }
       break;
     case BC_NEG:
@@ -514,7 +512,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
       {
         if ((core->stack.top - core->stack.bottom) < 1)
         {
-          return BC_UNDERFLOW;
+          BC_CORE_RETURN(BC_UNDERFLOW);
         }
 
         BC_VALUE result;
@@ -527,23 +525,29 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
         if (status != BC_OK)
         {
-          return status;
+          BC_CORE_RETURN(status);
         }
 
         bcValueStackPop(&core->stack);
         bcValueStackPush(&core->stack, result);
+        bcValueCleanup(result);
       }
       break;
     default:
       fprintf(stderr, "Unknown opcode: 0x%02X\n", *cursor);
       bcCodeStreamCleanup(&codeStream);
-      return BC_NOT_IMPLEMENTED;
+      BC_CORE_RETURN(BC_NOT_IMPLEMENTED);
     }
   }
 
   assert(0);
+  BC_CORE_RETURN(BC_HALT_EXPECTED);
+
+  #undef BC_CORE_RETURN
+CORE_EXIT:
+
   bcCodeStreamCleanup(&codeStream);
-  return BC_HALT_EXPECTED;
+  return coreResult;
 }
 
 BCAPI bcStatus_t bcCoreTop(const BC_CORE core, BC_VALUE* val)
@@ -649,7 +653,7 @@ bcStatus_t bcCodeStreamAppendOpcode(bcCodeStream_t* cs, uint8_t opcode)
   return BC_OK;
 }
 
-bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, BC_VALUE con, uint8_t* pCon)
+bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, const BC_VALUE con, uint8_t* pCon)
 {
   if ((cs == NULL) || (pCon == NULL) || (con == NULL))
   {
@@ -677,6 +681,6 @@ bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, BC_VALUE con, uint8_t*
   }
 
   *pCon = (uint8_t) (cs->conSize & 0xFF);
-  cs->cons[cs->conSize++] = con;
+  cs->cons[cs->conSize++] = bcValueCopy(con);
   return BC_OK;  
 }

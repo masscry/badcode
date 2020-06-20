@@ -63,9 +63,10 @@ expr ::= OPENBR STR CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_STR); }
 expr ::= CONSTANT(VALUE). {
   uint8_t conCode;
 
-  bcCodeStreamAppendConstant(cs, bcValueCopy(VALUE), &conCode);
+  bcCodeStreamAppendConstant(cs, VALUE, &conCode);
   bcCodeStreamAppendOpcode(cs, BC_PSH);
   bcCodeStreamAppendOpcode(cs, conCode);
+  bcValueCleanup(VALUE);
 }
 
 %code {
@@ -100,7 +101,7 @@ expr ::= CONSTANT(VALUE). {
       return BC_NO_MEMORY;
     }
 
-    BC_VALUE tmptok;
+    BC_VALUE tmptok = NULL;
     const char* cursor = str;
 
     //
@@ -115,7 +116,8 @@ expr ::= CONSTANT(VALUE). {
 
     for(int tok = bcGetToken(cursor, &cursor, &tmptok); tok != 0; tok = bcGetToken(cursor, &cursor, &tmptok))
     {
-      Parse(parser, tok, tmptok, &tempCodeStream);
+      Parse(parser, tok, bcValueCopy(tmptok), &tempCodeStream);
+      bcValueCleanup(tmptok);
       tmptok = NULL;
     }
 

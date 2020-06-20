@@ -41,7 +41,7 @@ bcStatus_t bcValueStackCleanup(bcValueStack_t* pStack)
   return BC_OK;
 }
 
-bcStatus_t bcValueStackPush(bcValueStack_t* pStack, BC_VALUE value)
+bcStatus_t bcValueStackPush(bcValueStack_t* pStack, const BC_VALUE value)
 {
   if ((pStack == NULL) || (value == NULL))
   {
@@ -53,7 +53,7 @@ bcStatus_t bcValueStackPush(bcValueStack_t* pStack, BC_VALUE value)
     return BC_OVERFLOW;
   } 
 
-  *pStack->top = value;
+  *pStack->top = bcValueCopy(value);
   ++pStack->top;
   return BC_OK;
 }

@@ -166,7 +166,7 @@ bcStatus_t bcCodeStreamAppendOpcode(bcCodeStream_t* cs, uint8_t opcode);
  *    BC_NO_MEMORY - when capactity reached and no memory can't be allocated
  *    BC_OK - constant appened successfully
  */
-bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, BC_VALUE con, uint8_t* pCon);
+bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, const BC_VALUE con, uint8_t* pCon);
 
 /**
  * Interface function to re2c generated lexer.
