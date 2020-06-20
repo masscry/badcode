@@ -25,6 +25,8 @@
     brs = [>][>];
     openbr = [(];
     closebr = [)];
+    lnot = [!];
+    bnot = [~];
     frac = [0-9]* "." [0-9]+ | [0-9]+ ".";
     exp = 'e' [+-]? [0-9]+;
     number = (frac exp? | [0-9]+ exp);
@@ -59,112 +61,145 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       return 0;
     }
 
+    lnot {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_LNOT;
+    }
+
+    bnot {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_BNOT;
+    }
+
     openbr {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_OPENBR;
     }
 
     closebr {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_CLOSEBR;
     }
 
     end {
       // '\0' found, string ended.
+      *pData = NULL;
       return 0;
     }
 
     add {
       // '+'
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_ADD;
     }
 
     sub {
       // '-'
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_SUB;
     }
 
     mul {
       // '*'
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_MUL;
     }
     
     div {
       // '/'
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_DIV;
     }
 
     mod {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_MOD;
     }
 
     eq  {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_EQ;
     }
 
     neq {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_NEQ;
     }
 
     gr {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_GR;
     }
 
     ls {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_LS;
     }
 
     gre {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_GRE;
     }
 
     lse {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_LSE;
     }
 
     lnd {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_LND;
     }
 
     lor {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_LOR;
     }
 
     bnd {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_BND;
     }
 
     bor {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_BOR;
     }
 
     xor {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_XOR;
     }
 
     bls {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_BLS;
     }
 
     brs {
       *tail = YYCURSOR;
+      *pData = NULL;
       return TOK_BRS;
     }
 

@@ -310,6 +310,58 @@ static bcStatus_t bcValueBinaryOperator(const BC_VALUE a, const BC_VALUE b, uint
   }
 }
 
+static bcStatus_t bcValueUnaryOperator(const BC_VALUE a, uint8_t unop, BC_VALUE* result)
+{
+  assert((result != NULL) && (a != NULL));
+
+  switch (unop)
+  {
+  case BC_NEG:
+    switch (a->type)
+    {
+    case BC_INTEGER:
+      {
+        const bcInteger_t* aVal = (const bcInteger_t*)a;
+        *result = bcValueInteger(-aVal->data);
+        return BC_OK;
+      }
+      break;
+    case BC_NUMBER:
+      {
+        const bcNumber_t* aVal = (const bcNumber_t*)a;
+        *result = bcValueNumber(-aVal->data);
+        return BC_OK;
+      }
+      break;
+    default:
+      return BC_NOT_IMPLEMENTED;
+    }
+    break;
+  case BC_LNT:
+  case BC_BNT:
+    {
+      if (a->type != BC_INTEGER)
+      {
+        return BC_NOT_IMPLEMENTED;
+      }
+      const bcInteger_t* aVal = (const bcInteger_t*)a;
+      if (unop == BC_LNT)
+      {
+        *result = bcValueInteger(!aVal->data);
+      }
+      else
+      {
+        *result = bcValueInteger(~aVal->data);
+      }
+      return BC_OK;
+    }
+    break;
+  default:
+    return BC_NOT_IMPLEMENTED;
+  }
+}
+
+
 bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 {
   if ((core == NULL) || (code == NULL))
@@ -370,6 +422,32 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         }
 
         bcValueStackPop(&core->stack);
+        bcValueStackPop(&core->stack);
+        bcValueStackPush(&core->stack, result);
+      }
+      break;
+    case BC_NEG:
+    case BC_LNT:
+    case BC_BNT:
+      {
+        if ((core->stack.top - core->stack.bottom) < 1)
+        {
+          return BC_UNDERFLOW;
+        }
+
+        BC_VALUE result;
+
+        bcStatus_t status = bcValueUnaryOperator(
+          core->stack.top[-1],
+          *cursor,
+          &result
+        );
+
+        if (status != BC_OK)
+        {
+          return status;
+        }
+
         bcValueStackPop(&core->stack);
         bcValueStackPush(&core->stack, result);
       }
