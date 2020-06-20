@@ -388,6 +388,19 @@ static bcStatus_t bcValueUnaryOperator(const BC_VALUE a, uint8_t unop, BC_VALUE*
       return BC_OK;
     }
     break;
+  case BC_STR:
+    {
+      char* aVal = NULL;
+      bcStatus_t status = bcValueAsString(a, &aVal, 0);
+      if (status != BC_OK)
+      {
+        return status;
+      }
+      *result = bcValueString(aVal);
+      free(aVal);
+      return BC_OK;
+    }
+    break;
   default:
     return BC_NOT_IMPLEMENTED;
   }
@@ -497,6 +510,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
     case BC_BNT:
     case BC_INT:
     case BC_NUM:
+    case BC_STR:
       {
         if ((core->stack.top - core->stack.bottom) < 1)
         {

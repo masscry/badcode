@@ -34,6 +34,7 @@
     end = [\x00];
     int = 'int';
     num = 'num';
+    str = 'str';
     set = '<-';
 */
 
@@ -65,16 +66,16 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       return 0;
     }
 
-    id {
-      *tail = YYCURSOR;
-      *pData = NULL;
-      return TOK_ID;
-    }
-
     set {
       *tail = YYCURSOR;
       *pData = NULL;
       return TOK_SET;
+    }
+
+    str {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_STR;
     }
 
     int {
@@ -265,6 +266,12 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
 
       *tail = YYCURSOR;
       return TOK_CONSTANT;
+    }
+
+    id {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_ID;
     }
 
   */

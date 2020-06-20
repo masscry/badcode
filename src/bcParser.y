@@ -16,7 +16,7 @@
 %left ADD SUB.
 %left DIV MUL MOD.
 %right LNOT BNOT.
-%right INT NUM.
+%right INT NUM STR.
 
 %include {
   #include <bcPrivate.h>
@@ -58,6 +58,7 @@ expr ::= BNOT expr.               { bcCodeStreamAppendOpcode(cs, BC_BNT); }
 expr ::= SUB expr. [LNOT]         { bcCodeStreamAppendOpcode(cs, BC_NEG); }
 expr ::= OPENBR INT CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_INT); }
 expr ::= OPENBR NUM CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_NUM); }
+expr ::= OPENBR STR CLOSEBR expr. { bcCodeStreamAppendOpcode(cs, BC_STR); }
 
 expr ::= CONSTANT(VALUE). {
   uint8_t conCode;

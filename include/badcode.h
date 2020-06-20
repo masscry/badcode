@@ -70,6 +70,8 @@ typedef enum bcStatus_t
   BC_CONST_NOT_FOUND,    /**< Requested constant is not found */
   BC_HALT_EXPECTED,      /**< Program end reached before HALT */
   BC_DIVIDE_BY_ZERO,     /**< Divide by Zero error */
+  BC_CANT_CONVERT,       /**< Conversion failed */
+  BC_TOO_SMALL,          /**< Buffer is to small */
   BC_STATUS_TOTAL        /**< Total status codes */
 } bcStatus_t;
 
@@ -127,6 +129,34 @@ BCAPI bcStatus_t bcCorePop(BC_CORE core);
  * @return NULL on errors, new value otherwise
  */
 BCAPI BC_VALUE bcValueInteger(int64_t val);
+
+/**
+ * Box a string.
+ * 
+ * @param[in] str string to box in BC_VALUE
+ * 
+ * @return NULL on errors, new value otherwise
+ */
+BCAPI BC_VALUE bcValueString(const char* str);
+
+/**
+ * Copy stored value to given pointer.
+ * 
+ * If bufSize != 0 and *pBuf != NULL, value copied to buffer, otherwise 
+ * new buffer is allocated and set to *pBuf.
+ * 
+ * @param[in] val boxed value to extract string
+ * @param[in,out] pBuf pointer to buffer of given size or pointer to NULL
+ * @param[in] bufSize size of passed buffer, or 0
+ * 
+ * @return
+ *    BC_OK conversion completed
+ *    BC_NO_MEMORY failed to allocated buffer of enough size
+ *    BC_INVALID_ARG when invalid arguments passed
+ *    BC_TOO_SMALL passed buffer is to small
+ *    BC_NOT_IMPLEMENTED such conversion is not implemented
+ */
+BCAPI bcStatus_t bcValueAsString(const BC_VALUE val, char** pBuf, size_t bufSize);
 
 /**
  * Create copy of given box.

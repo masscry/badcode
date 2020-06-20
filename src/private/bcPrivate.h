@@ -67,12 +67,12 @@ typedef enum bcOp_t
   BC_BNT, /**< ~A */
   BC_INT, /**< (int) A */
   BC_NUM, /**< (num) A */
+  BC_STR, /**< toString(A) */
   BC_SET, /**< A <- B */
   BC_IND, /**< A[B] */
   BC_ADR, /**< &A */
   BC_ITM, /**< A.B */
   BC_CLL, /**< A() */
-  BC_STR, /**< toString(A) */
   BC_LST, /**< toList(A) */
   BC_DCT, /**< toDict(A) */
   BC_OP_LAST, /**< Last valid opcode */
