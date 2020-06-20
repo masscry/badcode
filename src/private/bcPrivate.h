@@ -42,6 +42,7 @@
 typedef enum bcOp_t
 {
   BC_HALT = 0x00, /**< Halt VM Execution */
+  BC_PSH, /**< push(A) */
   BC_ADD, /**< A + B */
   BC_SUB, /**< A - B */
   BC_MUL, /**< A * B */
@@ -60,22 +61,19 @@ typedef enum bcOp_t
   BC_XOR, /**< A ^ B */
   BC_BLS, /**< A << B */
   BC_BRS, /**< A >> B */
-  BC_IND, /**< A[B] */
-  BC_ADR, /**< &A */
-  BC_ITM, /**< A.B */
-  BC_CLL, /**< A() */
   BC_NEG, /**< -A */
-  BC_INC, /**< ++A */
-  BC_DEC, /**< --A */
   BC_LNT, /**< !A */
   BC_BNT, /**< ~A */
   BC_INT, /**< toInteger(A) */
   BC_NUM, /**< toNumber(A) */
+  BC_IND, /**< A[B] */
+  BC_ADR, /**< &A */
+  BC_ITM, /**< A.B */
+  BC_CLL, /**< A() */
   BC_STR, /**< toString(A) */
   BC_LST, /**< toList(A) */
   BC_DCT, /**< toDict(A) */
   BC_SET, /**< A <- B */
-  BC_PSH, /**< push(A) */
   BC_POP, /**< pop()   */
   BC_OP_LAST, /**< Last valid opcode */
   BC_OP_TOTAL = 0xFF

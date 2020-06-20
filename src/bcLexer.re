@@ -31,6 +31,8 @@
     exp = 'e' [+-]? [0-9]+;
     number = (frac exp? | [0-9]+ exp);
     end = [\x00];
+    int = 'int';
+    num = 'num';
 */
 
 #include <bcParser.h>
@@ -59,6 +61,18 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       fprintf(stderr, "Unknown Symbol: '%c' (0x%02x)\n", *head, *head);
       *tail = head;
       return 0;
+    }
+
+    int {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_INT;
+    }
+
+    num {
+      *tail = YYCURSOR;
+      *pData = NULL;
+      return TOK_NUM;
     }
 
     lnot {

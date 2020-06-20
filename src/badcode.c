@@ -109,9 +109,17 @@ static bcStatus_t bcValueBinaryOperatorAlgebra(const BC_VALUE a, const BC_VALUE 
           aVal *= bVal;
           break;
         case BC_DIV:
+          if (bVal == 0)
+          {
+            return BC_DIVIDE_BY_ZERO;
+          }
           aVal /= bVal;
           break;
         case BC_MOD:
+          if (bVal == 0)
+          {
+            return BC_DIVIDE_BY_ZERO;
+          }
           aVal %= bVal;
           break;
         default:
@@ -356,6 +364,30 @@ static bcStatus_t bcValueUnaryOperator(const BC_VALUE a, uint8_t unop, BC_VALUE*
       return BC_OK;
     }
     break;
+  case BC_INT:
+    {
+      int64_t aVal;
+      bcStatus_t status = bcValueAsInteger(a, &aVal);
+      if (status != BC_OK)
+      {
+        return status;
+      }
+      *result = bcValueInteger(aVal);
+      return BC_OK;
+    }
+    break;
+  case BC_NUM:
+    {
+      double aVal;
+      bcStatus_t status = bcValueAsNumber(a, &aVal);
+      if (status != BC_OK)
+      {
+        return status;
+      }
+      *result = bcValueNumber(aVal);
+      return BC_OK;
+    }
+    break;
   default:
     return BC_NOT_IMPLEMENTED;
   }
@@ -383,6 +415,31 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
     case BC_HALT:
       bcCodeStreamCleanup(&codeStream);
       return BC_OK;
+    case BC_PSH:
+      {
+        ++cursor;
+        if (cursor == end)
+        {
+          bcCodeStreamCleanup(&codeStream);
+          return BC_MALFORMED_CODE;
+        }
+
+        uint8_t conID = *cursor;
+        if (conID >= codeStream.conSize)
+        {
+          bcCodeStreamCleanup(&codeStream);
+          return BC_CONST_NOT_FOUND;
+        }
+
+        BC_VALUE val = bcValueCopy(codeStream.cons[conID]);
+
+        bcStatus_t status = bcValueStackPush(&core->stack, val);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+      }
+      break;
     case BC_ADD:
     case BC_SUB:
     case BC_MUL:
@@ -429,6 +486,8 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
     case BC_NEG:
     case BC_LNT:
     case BC_BNT:
+    case BC_INT:
+    case BC_NUM:
       {
         if ((core->stack.top - core->stack.bottom) < 1)
         {
@@ -450,31 +509,6 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
         bcValueStackPop(&core->stack);
         bcValueStackPush(&core->stack, result);
-      }
-      break;
-    case BC_PSH:
-      {
-        ++cursor;
-        if (cursor == end)
-        {
-          bcCodeStreamCleanup(&codeStream);
-          return BC_MALFORMED_CODE;
-        }
-
-        uint8_t conID = *cursor;
-        if (conID >= codeStream.conSize)
-        {
-          bcCodeStreamCleanup(&codeStream);
-          return BC_CONST_NOT_FOUND;
-        }
-
-        BC_VALUE val = bcValueCopy(codeStream.cons[conID]);
-
-        bcStatus_t status = bcValueStackPush(&core->stack, val);
-        if (status != BC_OK)
-        {
-          return status;
-        }
       }
       break;
     default:

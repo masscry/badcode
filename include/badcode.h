@@ -69,6 +69,7 @@ typedef enum bcStatus_t
   BC_MALFORMED_CODE,     /**< Invalid opcode */
   BC_CONST_NOT_FOUND,    /**< Requested constant is not found */
   BC_HALT_EXPECTED,      /**< Program end reached before HALT */
+  BC_DIVIDE_BY_ZERO,     /**< Divide by Zero error */
   BC_STATUS_TOTAL        /**< Total status codes */
 } bcStatus_t;
 
