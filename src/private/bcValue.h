@@ -31,6 +31,7 @@ typedef enum bcDataType_t
 typedef struct bcValue_t
 {
   bcDataType_t type; /**< Value type */
+  int32_t refCount; /**< reference counter */
 } bcValue_t;
 
 /**

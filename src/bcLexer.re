@@ -269,8 +269,15 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
     }
 
     id {
+      char* tmpString = (char*) malloc((size_t)((YYCURSOR - head) + 1));
+      memcpy(tmpString, head, (size_t)(YYCURSOR - head)); // copy token symbols to temp buffer
+      tmpString[YYCURSOR - head] = 0;
+
+      *pData = bcValueString(tmpString);
+
+      free(tmpString);
+
       *tail = YYCURSOR;
-      *pData = NULL;
       return TOK_ID;
     }
 

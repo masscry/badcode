@@ -12,15 +12,21 @@ BCAPI bcStatus_t bcValueCleanup(BC_VALUE value)
     return BC_INVALID_ARG;
   }
 
-  switch (value->type)
+  --value->refCount;
+  if (value->refCount == 0)
   {
-  case BC_INTEGER:
-  case BC_NUMBER:
-    free(value);
-    return BC_OK;
-  default:
-    return BC_NOT_IMPLEMENTED;
+    switch (value->type)
+    {
+    case BC_INTEGER:
+    case BC_NUMBER:
+    case BC_STRING:
+      free(value);
+      return BC_OK;
+    default:
+      return BC_NOT_IMPLEMENTED;
+    }
   }
+  return BC_OK;
 }
 
 BCAPI BC_VALUE bcValueCopy(const BC_VALUE val)
@@ -30,15 +36,9 @@ BCAPI BC_VALUE bcValueCopy(const BC_VALUE val)
     return NULL;
   }
 
-  switch (val->type)
-  {
-  case BC_INTEGER:
-    return bcValueInteger(((bcInteger_t*) val)->data);
-  case BC_NUMBER:
-    return bcValueNumber(((bcNumber_t*) val)->data);
-  default:
-    return NULL;
-  }
+  BC_VALUE result = (BC_VALUE) val;
+  ++result->refCount;
+  return result;
 }
 
 BCAPI BC_VALUE bcValueInteger(int64_t val)
@@ -50,6 +50,7 @@ BCAPI BC_VALUE bcValueInteger(int64_t val)
   }
 
   result->head.type = BC_INTEGER;
+  result->head.refCount = 1;
   result->data = val;
 
   return &result->head;
@@ -64,7 +65,9 @@ BCAPI BC_VALUE bcValueNumber(double val)
   }
 
   result->head.type = BC_NUMBER;
+  result->head.refCount = 1;
   result->data = val;
+
   return &result->head;
 }
 
@@ -78,8 +81,10 @@ BCAPI BC_VALUE bcValueString(const char* str)
   }
 
   result->head.type = BC_STRING;
+  result->head.refCount = 1;
   result->len = len;
   memcpy(result->data, str, len);
+
   return &result->head;
 }
 
