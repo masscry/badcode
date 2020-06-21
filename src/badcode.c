@@ -573,7 +573,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
   for(const uint8_t* cursor = codeStream.opcodes, *end = codeStream.opcodes + codeStream.opSize; cursor != end; ++cursor)
   {
-    fprintf(stderr, "%s\n", bcOpcodeString(*cursor));
+
     switch (*cursor)
     {
     case BC_HALT:
