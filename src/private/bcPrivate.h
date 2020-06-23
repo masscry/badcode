@@ -11,6 +11,7 @@
 #include <badcode.h>
 #include "bcValue.h"
 #include "bcValueStack.h"
+#include "bcParseTree.h"
 
 /**
  * Maximum stack size. Interpreter exits with BC_OVERFLOW if stack exceed this 
@@ -192,6 +193,8 @@ bcStatus_t bcCodeStreamAppendOpcode(bcCodeStream_t* cs, uint8_t opcode);
  *    BC_OK - constant appened successfully
  */
 bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, const BC_VALUE con, uint8_t* pCon);
+
+bcStatus_t bcCodeStreamCompile(bcCodeStream_t* cs, const bcTree_t* tree);
 
 /**
  * Interface function to re2c generated lexer.

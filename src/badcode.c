@@ -883,3 +883,94 @@ bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, const BC_VALUE con, ui
   cs->cons[cs->conSize++] = bcValueCopy(con);
   return BC_OK;  
 }
+
+bcStatus_t bcCodeStreamProduce(bcCodeStream_t* cs, const bcTreeItem_t* item)
+{
+  if ((cs == NULL) || (item == NULL))
+  {
+    return BC_INVALID_ARG;
+  }
+
+  for (const bcTreeItem_t* cursor = item; cursor != NULL; cursor = cursor->next)
+  {
+    switch (cursor->type)
+    {
+    case TIT_BIN_OP:
+      {
+        bcBinOp_t* binop = (bcBinOp_t*) cursor;
+        bcStatus_t status = bcCodeStreamProduce(cs, binop->lbr);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+        status = bcCodeStreamProduce(cs, binop->rbr);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+        status = bcCodeStreamAppendOpcode(cs, (uint8_t) binop->tag);
+        if (status != BC_OK)
+        {
+          return status;
+        }        
+      }
+      break;
+    case TIT_UN_OP:
+      {
+        bcUnOp_t* unop = (bcUnOp_t*) cursor;
+        bcStatus_t status = bcCodeStreamProduce(cs, unop->br);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+
+        status = bcCodeStreamAppendOpcode(cs, (uint8_t) unop->tag);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+      }
+      break;
+    case TIT_CONSTANT:
+      {
+        bcConstant_t* cns = (bcConstant_t*) cursor;
+        uint8_t conCode;
+        bcStatus_t status = bcCodeStreamAppendConstant(cs, cns->constVal, &conCode);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+        status = bcCodeStreamAppendOpcode(cs, BC_PSH);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+        status = bcCodeStreamAppendOpcode(cs, conCode);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+      }
+      break;
+    default:
+      return BC_NOT_IMPLEMENTED;
+    }
+  }
+  return BC_OK;
+}
+
+bcStatus_t bcCodeStreamCompile(bcCodeStream_t* cs, const bcTree_t* tree)
+{
+  if ((cs == NULL) || (tree == NULL))
+  {
+    return BC_INVALID_ARG;
+  }
+
+  bcStatus_t result = bcCodeStreamProduce(cs, tree->root);
+  if (result != BC_OK)
+  {
+    return result;
+  }
+
+  return bcCodeStreamAppendOpcode(cs, BC_HALT);
+}

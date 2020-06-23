@@ -142,11 +142,13 @@ add_library(badcode STATIC
   src/private/bcPrivate.h
   src/private/bcValue.h
   src/private/bcValueStack.h
+  src/private/bcParseTree.h
 
 # SOURCES
   src/badcode.c
   src/bcValue.c
   src/bcValueStack.c
+  src/bcParseTree.c
 
 # GENERATED SOURCES
   "${CMAKE_CURRENT_BINARY_DIR}/bcParser.c"

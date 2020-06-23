@@ -1,8 +1,11 @@
 %token_type {BC_VALUE}
-%token_destructor { if ($$ != NULL) { bcValueCleanup($$); } }
+%token_destructor { if ($$ != NULL) { bcValueCleanup($$); }; }
 %token_prefix TOK_
-%extra_argument { bcCodeStream_t* cs }
+%extra_argument { bcTree_t** tree }
 %start_symbol program
+
+%default_type { bcTreeItem_t* }
+%default_destructor { if ($$ != NULL) { bcTreeItemCleanup($$); } }
 
 %right SET.
 %left LOR.
@@ -20,6 +23,7 @@
 
 %include {
   #include <bcPrivate.h>
+  #include <bcParseTree.h>
 
   #include <stdio.h>
   #include <stdlib.h>
@@ -30,55 +34,55 @@
   fprintf(stderr, "Syntax Error!\n");
 }
 
-program ::= .     { bcCodeStreamAppendOpcode(cs, BC_HALT); }
-program ::= rightExpr. { bcCodeStreamAppendOpcode(cs, BC_HALT); }
+program ::= statementList(LIST). { *tree = bcTree(LIST); }
 
-rightExpr ::= leftExpr SET rightExpr.  { bcCodeStreamAppendOpcode(cs, BC_SET); }
-rightExpr ::= rightExpr LOR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LOR); }
-rightExpr ::= rightExpr LND rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LND); }
-rightExpr ::= rightExpr BOR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BOR); }
-rightExpr ::= rightExpr XOR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_XOR); }
-rightExpr ::= rightExpr BND rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BND); }
-rightExpr ::= rightExpr EQ  rightExpr. { bcCodeStreamAppendOpcode(cs, BC_EQ);  }
-rightExpr ::= rightExpr NEQ rightExpr. { bcCodeStreamAppendOpcode(cs, BC_NEQ); }
-rightExpr ::= rightExpr GR  rightExpr. { bcCodeStreamAppendOpcode(cs, BC_GR);  }
-rightExpr ::= rightExpr GRE rightExpr. { bcCodeStreamAppendOpcode(cs, BC_GRE); }
-rightExpr ::= rightExpr LS  rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LS);  }
-rightExpr ::= rightExpr LSE rightExpr. { bcCodeStreamAppendOpcode(cs, BC_LSE); }
-rightExpr ::= rightExpr BLS rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BLS); }
-rightExpr ::= rightExpr BRS rightExpr. { bcCodeStreamAppendOpcode(cs, BC_BRS); }
-rightExpr ::= rightExpr SUB rightExpr. { bcCodeStreamAppendOpcode(cs, BC_SUB); }
-rightExpr ::= rightExpr ADD rightExpr. { bcCodeStreamAppendOpcode(cs, BC_ADD); }
-rightExpr ::= rightExpr MUL rightExpr. { bcCodeStreamAppendOpcode(cs, BC_MUL); }
-rightExpr ::= rightExpr DIV rightExpr. { bcCodeStreamAppendOpcode(cs, BC_DIV); }
-rightExpr ::= rightExpr MOD rightExpr. { bcCodeStreamAppendOpcode(cs, BC_MOD); }
-rightExpr ::= OPENBR rightExpr CLOSEBR. 
-rightExpr ::= LNOT rightExpr.               { bcCodeStreamAppendOpcode(cs, BC_LNT); }
-rightExpr ::= BNOT rightExpr.               { bcCodeStreamAppendOpcode(cs, BC_BNT); }
-rightExpr ::= SUB rightExpr. [LNOT]         { bcCodeStreamAppendOpcode(cs, BC_NEG); }
-rightExpr ::= OPENBR INT CLOSEBR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_INT); }
-rightExpr ::= OPENBR NUM CLOSEBR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_NUM); }
-rightExpr ::= OPENBR STR CLOSEBR rightExpr. { bcCodeStreamAppendOpcode(cs, BC_STR); }
+statementList(RESULT) ::= statementList(HEAD) statement(TAIL). { RESULT = bcAppend(HEAD, TAIL); }
+statementList(RESULT) ::= statement(HEAD). { RESULT = HEAD; }
 
-rightExpr ::= CONSTANT(VALUE). {
-  uint8_t conCode;
+statement(RESULT) ::= rightExpr(HEAD) EXPR_END. { RESULT = HEAD; }
+statement(RESULT) ::= EXPR_END. { RESULT = NULL; }
 
-  bcCodeStreamAppendConstant(cs, VALUE, &conCode);
-  bcCodeStreamAppendOpcode(cs, BC_PSH);
-  bcCodeStreamAppendOpcode(cs, conCode);
+rightExpr(RESULT) ::=  leftExpr(LHS) SET rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_SET); }
+rightExpr(RESULT) ::= rightExpr(LHS) LOR rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_LOR); }
+rightExpr(RESULT) ::= rightExpr(LHS) LND rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_LND); }
+rightExpr(RESULT) ::= rightExpr(LHS) BOR rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_BOR); }
+rightExpr(RESULT) ::= rightExpr(LHS) XOR rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_XOR); }
+rightExpr(RESULT) ::= rightExpr(LHS) BND rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_BND); }
+rightExpr(RESULT) ::= rightExpr(LHS) EQ  rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_EQ);  }
+rightExpr(RESULT) ::= rightExpr(LHS) NEQ rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_NEQ); }
+rightExpr(RESULT) ::= rightExpr(LHS) GR  rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_GR);  }
+rightExpr(RESULT) ::= rightExpr(LHS) GRE rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_GRE); }
+rightExpr(RESULT) ::= rightExpr(LHS) LS  rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_LS);  }
+rightExpr(RESULT) ::= rightExpr(LHS) LSE rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_LSE); }
+rightExpr(RESULT) ::= rightExpr(LHS) BLS rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_BLS); }
+rightExpr(RESULT) ::= rightExpr(LHS) BRS rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_BRS); }
+rightExpr(RESULT) ::= rightExpr(LHS) SUB rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_SUB); }
+rightExpr(RESULT) ::= rightExpr(LHS) ADD rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_ADD); }
+rightExpr(RESULT) ::= rightExpr(LHS) MUL rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_MUL); }
+rightExpr(RESULT) ::= rightExpr(LHS) DIV rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_DIV); }
+rightExpr(RESULT) ::= rightExpr(LHS) MOD rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_MOD); }
+rightExpr(RESULT) ::= OPENBR rightExpr(EXPR) CLOSEBR.    { RESULT = EXPR; }
+rightExpr(RESULT) ::= LNOT rightExpr(BR).                { RESULT = bcUnOp(BR, BC_LNT); }
+rightExpr(RESULT) ::= BNOT rightExpr(BR).                { RESULT = bcUnOp(BR, BC_BNT); }
+rightExpr(RESULT) ::= SUB rightExpr(BR). [LNOT]          { RESULT = bcUnOp(BR, BC_NEG); }
+rightExpr(RESULT) ::= OPENBR INT CLOSEBR rightExpr(BR).  { RESULT = bcUnOp(BR, BC_INT); }
+rightExpr(RESULT) ::= OPENBR NUM CLOSEBR rightExpr(BR).  { RESULT = bcUnOp(BR, BC_NUM); }
+rightExpr(RESULT) ::= OPENBR STR CLOSEBR rightExpr(BR).  { RESULT = bcUnOp(BR, BC_STR); }
+
+rightExpr(RESULT) ::= CONSTANT(VALUE). {
+  RESULT = bcConstant(VALUE);
   bcValueCleanup(VALUE);
 }
 
-rightExpr ::= leftExpr. {
-  bcCodeStreamAppendOpcode(cs, BC_VAL);
+rightExpr(RESULT) ::= leftExpr(BR). {
+  RESULT = bcUnOp(BR, BC_VAL);
 }
 
-leftExpr ::= ID(NAME). {
-  uint8_t conCode;
-
-  bcCodeStreamAppendConstant(cs, NAME, &conCode);
-  bcCodeStreamAppendOpcode(cs, BC_PSH);
-  bcCodeStreamAppendOpcode(cs, conCode);
+leftExpr(RESULT) ::= ID(NAME). {
+  RESULT = bcUnOp(
+    bcConstant(NAME),
+    BC_PSH
+  );
   bcValueCleanup(NAME);
 }
 
@@ -91,22 +95,9 @@ leftExpr ::= ID(NAME). {
       return BC_INVALID_ARG;
     }
 
-    bcCodeStream_t tempCodeStream;
-
-    bcStatus_t status = bcCodeStreamInit(&tempCodeStream);
-    if (status != BC_OK)
-    {
-      if (endp != NULL)
-      {
-        *endp = (char*) str;
-      }
-      return status;
-    }
-
     void* parser = ParseAlloc(malloc);
     if (parser == NULL)
     {
-      bcCodeStreamCleanup(&tempCodeStream);
       if (endp != NULL)
       {
         *endp = (char*) str;
@@ -127,20 +118,49 @@ leftExpr ::= ID(NAME). {
     // Later, I'll add them.
     //
 
+    bcTree_t* tree = NULL;
+
     for(int tok = bcGetToken(cursor, &cursor, &tmptok); tok != 0; tok = bcGetToken(cursor, &cursor, &tmptok))
     {
-      Parse(parser, tok, bcValueCopy(tmptok), &tempCodeStream);
+      Parse(parser, tok, bcValueCopy(tmptok), &tree);
       bcValueCleanup(tmptok);
       tmptok = NULL;
     }
 
     // When no more tokens are available, we need to give parser to know about it.
-    Parse(parser, 0, 0, &tempCodeStream);
+    Parse(parser, 0, 0, &tree);
 
     //
     // Here parser done it's job and dies
     //
     ParseFree(parser, free);
+
+    bcCodeStream_t tempCodeStream;
+
+    bcStatus_t status = bcCodeStreamInit(&tempCodeStream);
+    if (status != BC_OK)
+    {
+      bcTreeCleanup(tree);
+      if (endp != NULL)
+      {
+        *endp = (char*) str;
+      }
+      return status;
+    }
+
+    status = bcCodeStreamCompile(&tempCodeStream, tree);
+    if (status != BC_OK)
+    {
+      bcTreeCleanup(tree);
+      bcCodeStreamCleanup(&tempCodeStream);
+      if (endp != NULL)
+      {
+        *endp = (char*) str;
+      }
+      return status;
+    }
+
+    bcTreeCleanup(tree);
 
     *codeStream = tempCodeStream;
     if (endp != NULL)

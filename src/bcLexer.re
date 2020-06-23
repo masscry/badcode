@@ -6,7 +6,7 @@
     string = ["][^"]*["];
     digit = [0-9];
     integer = digit+;
-    spaces = [\t\n ]+;
+    spaces = [\n\t ]+;
     add = '+';
     sub = '-';
     mul = '*';
@@ -65,6 +65,12 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       fprintf(stderr, "Unknown Symbol: '%c' (0x%02x)\n", *head, *head);
       *tail = head;
       return 0;
+    }
+
+    ';' {
+      *tail = (const char*) YYCURSOR;
+      *pData = NULL;
+      return TOK_EXPR_END;
     }
 
     set {
