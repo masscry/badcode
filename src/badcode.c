@@ -128,6 +128,7 @@ bcStatus_t bcCoreNew(BC_CORE* pCore)
     free(result);
     return BC_NO_MEMORY;
   }
+  result->parseContext = NULL;
 
   *pCore = result;
   return BC_OK;
@@ -564,16 +565,32 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
     return BC_INVALID_ARG;
   }
 
-  bcCodeStream_t codeStream;
-  bcStatus_t coreResult = bcParseString(code, &codeStream, endp);
+  bcTree_t* tree = NULL;
+  bcStatus_t coreResult = bcParseString(code, &tree, endp, &core->parseContext);
   if (coreResult != BC_OK)
   {
     return coreResult;
   }
 
+  bcCodeStream_t codeStream;
+  coreResult = bcCodeStreamInit(&codeStream);
+  if (coreResult != BC_OK)
+  {
+    bcTreeCleanup(tree);
+    goto CORE_EXIT;
+  }
+
+  coreResult = bcCodeStreamCompile(&codeStream, tree);
+  if (coreResult != BC_OK)
+  {
+    bcTreeCleanup(tree);
+    goto CORE_EXIT;
+  }
+
+  bcTreeCleanup(tree);
+
   for(const uint8_t* cursor = codeStream.opcodes, *end = codeStream.opcodes + codeStream.opSize; cursor != end; ++cursor)
   {
-
     switch (*cursor)
     {
     case BC_HALT:
@@ -744,7 +761,6 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
   #undef BC_CORE_RETURN
 CORE_EXIT:
-
   bcCodeStreamCleanup(&codeStream);
   return coreResult;
 }

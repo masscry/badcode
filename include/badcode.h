@@ -74,6 +74,7 @@ typedef enum bcStatus_t
   BC_TOO_SMALL,          /**< Buffer is to small */
   BC_INVALID_ID,         /**< Invalid ID */
   BC_NOT_DEFINED,        /**< Variable is not defined */
+  BC_PARSE_NOT_FINISHED, /**< More input expected */
   BC_STATUS_TOTAL        /**< Total status codes */
 } bcStatus_t;
 

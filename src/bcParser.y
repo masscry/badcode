@@ -88,14 +88,24 @@ leftExpr(RESULT) ::= ID(NAME). {
 
 %code {
 
-  bcStatus_t bcParseString(const char* str, bcCodeStream_t* codeStream, char** endp)
+  bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, void** context)
   {
-    if ((codeStream == NULL) || (str == NULL))
+    if ((parseTree == NULL) || (str == NULL) || (context == NULL))
     {
       return BC_INVALID_ARG;
     }
 
-    void* parser = ParseAlloc(malloc);
+    void* parser = NULL;
+
+    if (*context == NULL)
+    {
+      parser = ParseAlloc(malloc);
+    }
+    else
+    {
+      parser = *context;
+    }
+
     if (parser == NULL)
     {
       if (endp != NULL)
@@ -119,9 +129,14 @@ leftExpr(RESULT) ::= ID(NAME). {
     //
 
     bcTree_t* tree = NULL;
-
     for(int tok = bcGetToken(cursor, &cursor, &tmptok); tok != 0; tok = bcGetToken(cursor, &cursor, &tmptok))
     {
+      if (tok == -1)
+      { // special case, when more data expected
+        *context = parser;
+        return BC_PARSE_NOT_FINISHED;
+      }
+
       Parse(parser, tok, bcValueCopy(tmptok), &tree);
       bcValueCleanup(tmptok);
       tmptok = NULL;
@@ -135,34 +150,8 @@ leftExpr(RESULT) ::= ID(NAME). {
     //
     ParseFree(parser, free);
 
-    bcCodeStream_t tempCodeStream;
-
-    bcStatus_t status = bcCodeStreamInit(&tempCodeStream);
-    if (status != BC_OK)
-    {
-      bcTreeCleanup(tree);
-      if (endp != NULL)
-      {
-        *endp = (char*) str;
-      }
-      return status;
-    }
-
-    status = bcCodeStreamCompile(&tempCodeStream, tree);
-    if (status != BC_OK)
-    {
-      bcTreeCleanup(tree);
-      bcCodeStreamCleanup(&tempCodeStream);
-      if (endp != NULL)
-      {
-        *endp = (char*) str;
-      }
-      return status;
-    }
-
-    bcTreeCleanup(tree);
-
-    *codeStream = tempCodeStream;
+    *parseTree = tree;
+    *context = NULL;
     if (endp != NULL)
     {
       *endp = (char*) cursor;

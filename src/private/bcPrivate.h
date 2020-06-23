@@ -119,6 +119,8 @@ struct bcCore_t
   size_t globalCap;
   size_t globalSize;
   BC_GLOBAL* globals;
+
+  void* parseContext;
 };
 
 bcStatus_t bcCoreSetGlobal(
@@ -218,14 +220,16 @@ int bcGetToken(const char* head, const char** tail, BC_VALUE* pData);
  * be passed, or memory leak happens.
  * 
  * @param[in] str - string to parse into code stream
- * @param[out] codeStream - pointer to code stream to fill, if function fails, no changes to codeStream are made.
+ * @param[out] parseTree - pointer to parse tree fill, if function fails, no changes to parseTree are made.
  * @param[out] endp - pointer in str to last processed character without error.
+ * @param[out] context - pointer to memory to store parsing context, if BC_PARSE_NOT_FINISHED is returned
  * 
  * @return 
+ *    BC_PARSE_NOT_FINISHED - more data expected, 
  *    BC_INVALID_ARG - when str or codeStream equals to NULL
  *    BC_NO_MEMORY - when code stream allocation fails, or parser failed to get memory
  *    BC_OK - if parsing completed successfully
  */
-bcStatus_t bcParseString(const char* str, bcCodeStream_t* codeStream, char** endp);
+bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, void** context);
 
 #endif /* DECI_SPACE_BADCODE_PRIVATE_HEADER */

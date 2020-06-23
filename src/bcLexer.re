@@ -6,7 +6,7 @@
     string = ["][^"]*["];
     digit = [0-9];
     integer = digit+;
-    spaces = [\n\t ]+;
+    spaces = [\t ]+;
     add = '+';
     sub = '-';
     mul = '*';
@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 int bcGetToken(const char* head, const char** tail, BC_VALUE* pData)
 {
@@ -67,10 +68,23 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       return 0;
     }
 
-    ';' {
+    '\n' {
       *tail = (const char*) YYCURSOR;
       *pData = NULL;
       return TOK_EXPR_END;
+    }
+
+    '\\' '\n'? '\x00' {
+      // code continues on next line
+      *tail = (const char*) YYCURSOR;
+      *pData = NULL;
+      return -1; // special token, tells that more data expected
+    }
+
+    '\\\n' {
+      // Skips any amount of spaces, tabs and newlines.
+      head = (const char*) YYCURSOR;
+      goto GET_NEXT_TOKEN;
     }
 
     set {
@@ -249,6 +263,13 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       // Simple C integer.
 
       char* tmpInteger = (char*) malloc((size_t)((YYCURSOR - (const uint8_t*) head) + 1));
+      if (tmpInteger == NULL)
+      { // no memory error, we need better error checking!
+        assert(0);
+        *tail = (const char*) YYCURSOR;
+        return TOK_EXPR_END;
+      }
+
       memcpy(tmpInteger, head, (size_t)(YYCURSOR - (const uint8_t*) head)); // copy token symbols to temp buffer
       tmpInteger[YYCURSOR - (const uint8_t*) head] = 0;
       *pData = bcValueInteger(strtoll(tmpInteger, NULL, 10));
@@ -264,6 +285,13 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       // Simple C float
 
       char* tmpNumber = (char*) malloc((size_t)((YYCURSOR - (const uint8_t*) head) + 1));
+      if (tmpNumber == NULL)
+      { // no memory error, we need better error checking!
+        assert(0);
+        *tail = (const char*) YYCURSOR;
+        return TOK_EXPR_END;
+      }
+
       memcpy(tmpNumber, head, (size_t)(YYCURSOR - (const uint8_t*) head)); // copy token symbols to temp buffer
       tmpNumber[YYCURSOR - (const uint8_t*) head] = 0;
       *pData = bcValueNumber(strtod(tmpNumber, NULL));
@@ -277,6 +305,13 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
 
     string {
       char* tmpString = (char*) malloc((size_t)((YYCURSOR - (const uint8_t*)(head+1))));
+      if (tmpString == NULL)
+      { // no memory error, we need better error checking!
+        assert(0);
+        *tail = (const char*) YYCURSOR;
+        return TOK_EXPR_END;
+      }
+
       memcpy(tmpString, head+1, (size_t)(YYCURSOR - (const uint8_t*)(head+1) - 1)); // copy token symbols to temp buffer
       tmpString[YYCURSOR - (const uint8_t*)(head+1)-1] = 0;
 
@@ -290,6 +325,13 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
 
     id {
       char* tmpString = (char*) malloc((size_t)((YYCURSOR - (const uint8_t*)head) + 1));
+      if (tmpString == NULL)
+      { // no memory error, we need better error checking!
+        assert(0);
+        *tail = (const char*) YYCURSOR;
+        return TOK_EXPR_END;
+      }
+
       memcpy(tmpString, head, (size_t)(YYCURSOR - (const uint8_t*)head)); // copy token symbols to temp buffer
       tmpString[YYCURSOR - (const uint8_t*)head] = 0;
 

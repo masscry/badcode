@@ -38,16 +38,25 @@ int main(int argc, char* argv[])
   
   if (input == stdin)
   {
-    fprintf(stdout, "%s", ">> ");
+    fprintf(stdout, "%s", ">>> ");
     fflush(stdout);
   }
 
   while ((nread = getline(&line, &len, input)) != -1) 
   {
     status = bcCoreExecute(core, line, NULL);
+    if (status == BC_PARSE_NOT_FINISHED)
+    {
+      fprintf(stdout, "%s", "... ");
+      fflush(stdout);
+      continue;
+    }
+
     if (status != BC_OK)
     {
       fprintf(stderr, "Error: %d\n", status);
+      fprintf(stdout, "%s", ">>> ");
+      fflush(stdout);
       continue;
     }
 
@@ -59,7 +68,7 @@ int main(int argc, char* argv[])
       bcCorePop(core);
     }
 
-    fprintf(stdout, "%s", ">> ");
+    fprintf(stdout, "%s", ">>> ");
     fflush(stdout);
   }
 
