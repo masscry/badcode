@@ -35,7 +35,7 @@
   fprintf(stderr, "Syntax Error: Unexpected token %s (%d)\n", yyTokenName[yymajor], yymajor);
 }
 
-program ::= statementList(LIST). { *tree = bcTree(LIST); }
+program ::= statementList(LIST). { *tree = bcTree(LIST);  }
 
 statementList(RESULT) ::= statementList(HEAD) statement(TAIL). { RESULT = bcAppend(HEAD, TAIL); }
 statementList(RESULT) ::= statement(HEAD). { RESULT = HEAD; }

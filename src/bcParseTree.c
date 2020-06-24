@@ -83,10 +83,6 @@ bcStatus_t bcTreeCleanup(bcTree_t* tree)
   }
 
   bcStatus_t status = bcTreeItemCleanup(tree->root);
-  if (status != BC_OK)
-  {
-    return status;
-  }
   free(tree);
   return BC_OK;
 }

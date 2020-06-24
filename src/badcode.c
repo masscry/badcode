@@ -1067,10 +1067,13 @@ bcStatus_t bcCodeStreamCompile(bcCodeStream_t* cs, const bcTree_t* tree)
     return BC_INVALID_ARG;
   }
 
-  bcStatus_t result = bcCodeStreamProduce(cs, tree->root);
-  if (result != BC_OK)
+  if (tree->root != NULL)
   {
-    return result;
+    bcStatus_t result = bcCodeStreamProduce(cs, tree->root);
+    if (result != BC_OK)
+    {
+      return result;
+    }
   }
 
   return bcCodeStreamAppendOpcode(cs, BC_HALT);
