@@ -128,7 +128,11 @@ bcStatus_t bcCoreNew(BC_CORE* pCore)
     free(result);
     return BC_NO_MEMORY;
   }
-  result->parseContext = NULL;
+  result->parseContext.context = NULL;
+  result->parseContext.newline = 1;
+
+  memset(result->parseContext.indentStack, 0, sizeof(result->parseContext.indentStack));
+  result->parseContext.indentTop = result->parseContext.indentStack;
 
   *pCore = result;
   return BC_OK;

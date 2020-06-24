@@ -51,6 +51,21 @@ bcStatus_t bcTreeItemCleanup(bcTreeItem_t* treeItem)
         }
       }
       break;
+    case TIT_IF_STATEMENT:
+      {
+        bcIfStatement_t* ifstate = (bcIfStatement_t*) cursor;
+        bcStatus_t status = bcTreeItemCleanup(ifstate->cond);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+        status = bcTreeItemCleanup(ifstate->body);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+      }
+      break;
     default:
       return BC_NOT_IMPLEMENTED;
     }
@@ -142,6 +157,21 @@ bcTreeItem_t* bcAppend(bcTreeItem_t* head, bcTreeItem_t* tail)
   return head;
 }
 
+bcTreeItem_t* bcIfStatement(bcTreeItem_t* cond, bcTreeItem_t* body)
+{
+  bcIfStatement_t* result = (bcIfStatement_t*) malloc(sizeof(bcIfStatement_t));
+  if (result == NULL)
+  {
+    return NULL;
+  }
+  result->head.type = TIT_IF_STATEMENT;
+  result->head.next = NULL;
+
+  result->cond = cond;
+  result->body = body;
+  return &result->head;
+}
+
 bcTree_t* bcTree(bcTreeItem_t* root)
 {
   bcTree_t* result = (bcTree_t*) malloc(sizeof(bcTree_t));
@@ -153,3 +183,4 @@ bcTree_t* bcTree(bcTreeItem_t* root)
   result->root = root;
   return result;
 }
+

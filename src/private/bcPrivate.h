@@ -109,6 +109,15 @@ typedef struct bcGlobalVar_t
   char name[];
 } bcGlobalVar_t ,*BC_GLOBAL;
 
+typedef struct bcParseContext_t
+{
+  void* context;
+  int newline;
+
+  uint8_t indentStack[64];
+  uint8_t* indentTop;
+} bcParseContext_t;
+
 /**
  * Interprerer evaluation core.
  */
@@ -120,7 +129,7 @@ struct bcCore_t
   size_t globalSize;
   BC_GLOBAL* globals;
 
-  void* parseContext;
+  bcParseContext_t parseContext;
 };
 
 bcStatus_t bcCoreSetGlobal(
@@ -206,10 +215,11 @@ bcStatus_t bcCodeStreamCompile(bcCodeStream_t* cs, const bcTree_t* tree);
  * @param[in] head - first character in stream
  * @param[out] tail - pointer is set to character after last processed
  * @param[out] pData - pointer is set to new allocated BC_VALUE, if any.
+ * @param[in,out] parseContext - pointer to parsing context
  * 
  * @return 0 if string ended and no tokens are found, one of TOK_ constants otherwise
  */
-int bcGetToken(const char* head, const char** tail, BC_VALUE* pData);
+int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseContext_t* parseContext);
 
 /**
  * Interface function to LEMON generated parser.
@@ -230,6 +240,6 @@ int bcGetToken(const char* head, const char** tail, BC_VALUE* pData);
  *    BC_NO_MEMORY - when code stream allocation fails, or parser failed to get memory
  *    BC_OK - if parsing completed successfully
  */
-bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, void** context);
+bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, bcParseContext_t* parseContext);
 
 #endif /* DECI_SPACE_BADCODE_PRIVATE_HEADER */

@@ -32,7 +32,6 @@
     frac = [0-9]* "." [0-9]+ | [0-9]+ ".";
     exp = 'e' [+-]? [0-9]+;
     number = (frac exp? | [0-9]+ exp);
-    end = [\x00];
     int = 'int';
     num = 'num';
     str = 'str';
@@ -47,13 +46,55 @@
 #include <string.h>
 #include <assert.h>
 
-int bcGetToken(const char* head, const char** tail, BC_VALUE* pData)
+static int bcCountSpaces(const char* head)
+{
+  const char* cursor = head;
+  while(*cursor == ' ')
+  {
+    ++cursor;
+  }
+  return (int)(cursor - head);
+}
+
+int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseContext_t* parseContext)
 {
   // head - first character of new token
   // YYCURSOR - last character of new token
 
   const uint8_t* YYMARKER; // inner lexer variable is used when there can be longer string to match
   const uint8_t* YYCURSOR = (const uint8_t*) head; // initialize cursor to first character position
+
+  // spaces are ignored later in parser, here we count indent and issuing tokens
+  // if needed
+
+  if (parseContext->newline != 0)
+  {
+    int newIndent = bcCountSpaces(head);
+
+    if (newIndent > *parseContext->indentTop)
+    {
+      ++parseContext->indentTop;
+      *parseContext->indentTop = newIndent;
+
+      *pData = NULL;
+      return TOK_INDENT;
+    }
+
+    if (newIndent < *parseContext->indentTop)
+    {
+      --parseContext->indentTop;
+      if (newIndent > *parseContext->indentTop)
+      { // tab error!
+        *pData = NULL;
+        return 0;
+      }
+
+      *pData = NULL;
+      return TOK_DEDENT;
+    }
+    parseContext->newline = 0;
+  }
+
 
 GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like spaces)
   /*!re2c
@@ -71,20 +112,30 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
     '\n' {
       *tail = (const char*) YYCURSOR;
       *pData = NULL;
+      parseContext->newline = 1;
       return TOK_EXPR_END;
     }
 
-    '\\' '\n'? '\x00' {
+    '\\' [ \t]* '\n'? '\x00' {
       // code continues on next line
-      *tail = (const char*) YYCURSOR;
+      *tail = (const char*) (YYCURSOR - 1); // leave \0 at tail for safety
       *pData = NULL;
+      parseContext->newline = 0; // do not count for indentation
       return -1; // special token, tells that more data expected
     }
 
-    '\\\n' {
+    '\\' [ \t]* '\n' {
       // Skips any amount of spaces, tabs and newlines.
       head = (const char*) YYCURSOR;
+      parseContext->newline = 0; // do not count for indentation
       goto GET_NEXT_TOKEN;
+    }
+
+    ':' [ \t]* '\n' {
+      *tail = (const char*) YYCURSOR;
+      *pData = NULL;
+      parseContext->newline = 1; 
+      return TOK_BLOCK;
     }
 
     set {
@@ -133,12 +184,6 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       *tail = (const char*) YYCURSOR;
       *pData = NULL;
       return TOK_CLOSEBR;
-    }
-
-    end {
-      // '\0' found, string ended.
-      *pData = NULL;
-      return 0;
     }
 
     add {
@@ -257,6 +302,12 @@ GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like space
       // Skips any amount of spaces, tabs and newlines.
       head = (const char*) YYCURSOR;
       goto GET_NEXT_TOKEN;
+    }
+
+    'if' {
+      *tail = (const char*) YYCURSOR;
+      *pData = NULL;
+      return TOK_IF;
     }
 
     integer {

@@ -28,16 +28,21 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <stdint.h>
+
 }
 
 %syntax_error {
-  fprintf(stderr, "Syntax Error!\n");
+  fprintf(stderr, "Syntax Error: Unexpected token %s (%d)\n", yyTokenName[yymajor], yymajor);
 }
 
 program ::= statementList(LIST). { *tree = bcTree(LIST); }
 
 statementList(RESULT) ::= statementList(HEAD) statement(TAIL). { RESULT = bcAppend(HEAD, TAIL); }
 statementList(RESULT) ::= statement(HEAD). { RESULT = HEAD; }
+
+statement(RESULT) ::= IF rightExpr(COND) BLOCK INDENT statementList(BODY) DEDENT. {
+  RESULT = bcIfStatement(COND, BODY);
+}
 
 statement(RESULT) ::= rightExpr(HEAD) EXPR_END. { RESULT = HEAD; }
 statement(RESULT) ::= EXPR_END. { RESULT = NULL; }
@@ -88,22 +93,24 @@ leftExpr(RESULT) ::= ID(NAME). {
 
 %code {
 
-  bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, void** context)
+  #include "bcParser.h"
+
+  bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, bcParseContext_t* parseContext)
   {
-    if ((parseTree == NULL) || (str == NULL) || (context == NULL))
+    if ((parseTree == NULL) || (str == NULL) || (parseContext == NULL))
     {
       return BC_INVALID_ARG;
     }
 
     void* parser = NULL;
 
-    if (*context == NULL)
+    if (parseContext->context == NULL)
     {
       parser = ParseAlloc(malloc);
     }
     else
     {
-      parser = *context;
+      parser = parseContext->context;
     }
 
     if (parser == NULL)
@@ -118,6 +125,8 @@ leftExpr(RESULT) ::= ID(NAME). {
     BC_VALUE tmptok = NULL;
     const char* cursor = str;
 
+    ParseTrace(stderr, "trace: ");
+
     //
     // I didn't found info on how properly raise internal errors from parser,
     // Internet says, that parsing context must have some error flags when 
@@ -129,17 +138,31 @@ leftExpr(RESULT) ::= ID(NAME). {
     //
 
     bcTree_t* tree = NULL;
-    for(int tok = bcGetToken(cursor, &cursor, &tmptok); tok != 0; tok = bcGetToken(cursor, &cursor, &tmptok))
+
+    int prevTok;
+    for(int tok = bcGetToken(cursor, &cursor, &tmptok, parseContext); tok != 0; tok = bcGetToken(cursor, &cursor, &tmptok, parseContext))
     {
       if (tok == -1)
       { // special case, when more data expected
-        *context = parser;
+        parseContext->context = parser;
         return BC_PARSE_NOT_FINISHED;
       }
 
       Parse(parser, tok, bcValueCopy(tmptok), &tree);
       bcValueCleanup(tmptok);
       tmptok = NULL;
+      prevTok = tok;
+
+      if (*cursor == '\0')
+      {
+        break;
+      }
+    }
+
+    if ((prevTok == TOK_BLOCK) || (parseContext->indentTop != parseContext->indentStack))
+    { // not all block were closed
+      parseContext->context = parser;
+      return BC_PARSE_NOT_FINISHED;
     }
 
     // When no more tokens are available, we need to give parser to know about it.
@@ -151,7 +174,7 @@ leftExpr(RESULT) ::= ID(NAME). {
     ParseFree(parser, free);
 
     *parseTree = tree;
-    *context = NULL;
+    parseContext->context = NULL;
     if (endp != NULL)
     {
       *endp = (char*) cursor;

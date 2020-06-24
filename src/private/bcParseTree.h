@@ -9,7 +9,8 @@ typedef enum bcTreeItemType_t
   TIT_UNDEF = 0,
   TIT_BIN_OP,
   TIT_UN_OP,
-  TIT_CONSTANT
+  TIT_CONSTANT,
+  TIT_IF_STATEMENT
 } bcTreeItemType_t;
 
 typedef struct bcTreeItem_t
@@ -39,6 +40,13 @@ typedef struct bcConstant_t
   BC_VALUE constVal;
 } bcConstant_t;
 
+typedef struct bcIfStatement_t
+{
+  bcTreeItem_t head;
+  bcTreeItem_t* cond;
+  bcTreeItem_t* body;
+} bcIfStatement_t;
+
 typedef struct bcTree_t
 {
   bcTreeItem_t* root;
@@ -53,6 +61,8 @@ bcTreeItem_t* bcBinOp(bcTreeItem_t* lbr, bcTreeItem_t* rbr, int tag);
 bcTreeItem_t* bcUnOp(bcTreeItem_t* br, int tag);
 
 bcTreeItem_t* bcConstant(const BC_VALUE value);
+
+bcTreeItem_t* bcIfStatement(bcTreeItem_t* cond, bcTreeItem_t* body);
 
 bcTreeItem_t* bcAppend(bcTreeItem_t* head, bcTreeItem_t* tail);
 
