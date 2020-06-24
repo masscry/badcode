@@ -1029,6 +1029,7 @@ bcStatus_t bcCodeStreamProduce(bcCodeStream_t* cs, const bcTreeItem_t* item)
 
         uint8_t conCode;
         bcStatus_t status = bcCodeStreamAppendConstant(cs, compiledBody, &conCode);
+        bcValueCleanup(compiledBody);
         if (status != BC_OK)
         {
           return status;
