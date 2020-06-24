@@ -560,63 +560,32 @@ static const char* bcOpcodeString(uint8_t opcode)
   }
 }
 
-bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
+static bcStatus_t bcCodeStreamExecute(BC_CORE core, const bcCodeStream_t* codeStream)
 {
-  #define BC_CORE_RETURN(STATUS) coreResult = (STATUS); goto CORE_EXIT
-
-  if ((core == NULL) || (code == NULL))
-  {
-    return BC_INVALID_ARG;
-  }
-
-  bcTree_t* tree = NULL;
-  bcStatus_t coreResult = bcParseString(code, &tree, endp, &core->parseContext);
-  if (coreResult != BC_OK)
-  {
-    return coreResult;
-  }
-
-  bcCodeStream_t codeStream;
-  coreResult = bcCodeStreamInit(&codeStream);
-  if (coreResult != BC_OK)
-  {
-    bcTreeCleanup(tree);
-    goto CORE_EXIT;
-  }
-
-  coreResult = bcCodeStreamCompile(&codeStream, tree);
-  if (coreResult != BC_OK)
-  {
-    bcTreeCleanup(tree);
-    goto CORE_EXIT;
-  }
-
-  bcTreeCleanup(tree);
-
-  for(const uint8_t* cursor = codeStream.opcodes, *end = codeStream.opcodes + codeStream.opSize; cursor != end; ++cursor)
+  for(const uint8_t* cursor = codeStream->opcodes, *end = codeStream->opcodes + codeStream->opSize; cursor != end; ++cursor)
   {
     switch (*cursor)
     {
     case BC_HALT:
-      BC_CORE_RETURN(BC_OK);
+      return BC_OK;
     case BC_PSH:
       {
         ++cursor;
         if (cursor == end)
         {
-          BC_CORE_RETURN(BC_MALFORMED_CODE);
+          return BC_MALFORMED_CODE;
         }
 
         uint8_t conID = *cursor;
-        if (conID >= codeStream.conSize)
+        if (conID >= codeStream->conSize)
         {
-          BC_CORE_RETURN(BC_CONST_NOT_FOUND);
+          return BC_CONST_NOT_FOUND;
         }
 
-        bcStatus_t status = bcValueStackPush(&core->stack, codeStream.cons[conID]);
+        bcStatus_t status = bcValueStackPush(&core->stack, codeStream->cons[conID]);
         if (status != BC_OK)
         {
-          BC_CORE_RETURN(status);
+          return status;
         }
       }
       break;
@@ -625,7 +594,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         bcStatus_t status = bcValueStackPop(&core->stack);
         if (status != BC_OK)
         {
-          BC_CORE_RETURN(status);
+          return status;
         }
       }
       break;
@@ -650,7 +619,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
       {
         if ((core->stack.top - core->stack.bottom) < 2)
         {
-          BC_CORE_RETURN(BC_UNDERFLOW);
+          return BC_UNDERFLOW;
         }
 
         BC_VALUE result;
@@ -664,7 +633,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
         if (status != BC_OK)
         {
-          BC_CORE_RETURN(status);
+          return status;
         }
 
         bcValueStackPop(&core->stack);
@@ -677,13 +646,13 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
       {
         if ((core->stack.top - core->stack.bottom) < 2)
         {
-          BC_CORE_RETURN(BC_UNDERFLOW);
+          return BC_UNDERFLOW;
         }
 
         BC_VALUE id = core->stack.top[-2];
         if (id->type != BC_STRING)
         {
-          BC_CORE_RETURN(BC_INVALID_ID);
+          return BC_INVALID_ID;
         }
 
         BC_VALUE result = bcValueCopy(core->stack.top[-1]);
@@ -691,7 +660,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         bcStatus_t status = bcCoreSetGlobal(core, ((bcString_t*)id)->data, core->stack.top[-1]);
         if (status != BC_OK)
         {
-          BC_CORE_RETURN(status);
+          return status;
         }
         bcValueStackPop(&core->stack);
         bcValueStackPop(&core->stack);
@@ -708,7 +677,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
       {
         if ((core->stack.top - core->stack.bottom) < 1)
         {
-          BC_CORE_RETURN(BC_UNDERFLOW);
+          return BC_UNDERFLOW;
         }
 
         BC_VALUE result;
@@ -721,7 +690,7 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
 
         if (status != BC_OK)
         {
-          BC_CORE_RETURN(status);
+          return status;
         }
 
         bcValueStackPop(&core->stack);
@@ -733,19 +702,19 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
       {
         if ((core->stack.top - core->stack.bottom) < 1)
         {
-          BC_CORE_RETURN(BC_UNDERFLOW);
+          return BC_UNDERFLOW;
         }
 
         BC_VALUE id = core->stack.top[-1];
         if (id->type != BC_STRING)
         {
-          BC_CORE_RETURN(BC_INVALID_ID);
+          return BC_INVALID_ID;
         }
 
         BC_VALUE result = bcCoreGetGlobal(core, ((bcString_t*)id)->data);
         if (result == NULL)
         {
-          BC_CORE_RETURN(BC_NOT_DEFINED);
+          return BC_NOT_DEFINED;
         }
 
         bcValueStackPop(&core->stack);
@@ -753,18 +722,95 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
         bcValueCleanup(result);
       }
       break;
+    case BC_IFS:
+      {
+        ++cursor;
+        if (cursor == end)
+        {
+          return BC_MALFORMED_CODE;
+        }
+
+        if ((core->stack.top - core->stack.bottom) < 1)
+        {
+          return BC_UNDERFLOW;
+        }
+
+        int64_t value;
+
+        bcStatus_t status = bcValueAsInteger(core->stack.top[-1], &value);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+
+        bcValueStackPop(&core->stack);
+
+        if (value != 0)
+        {
+          uint8_t conID = *cursor;
+          if (conID >= codeStream->conSize)
+          {
+            return BC_CONST_NOT_FOUND;
+          }
+
+          bcCode_t* code = (bcCode_t*) codeStream->cons[conID];
+          if (code->head.type != BC_CODE)
+          {
+            return BC_MALFORMED_CODE;
+          }
+
+          status = bcCodeStreamExecute(core, &code->code);
+          if (status != BC_OK)
+          {
+            return status;
+          }
+        }
+      }
+      break;
     default:
       fprintf(stderr, "Unknown opcode: 0x%02X\n", *cursor);
       bcCodeStreamCleanup(&codeStream);
-      BC_CORE_RETURN(BC_NOT_IMPLEMENTED);
+      return BC_NOT_IMPLEMENTED;
     }
   }
+  return BC_HALT_EXPECTED;
+}
 
-  assert(0);
-  BC_CORE_RETURN(BC_HALT_EXPECTED);
+bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
+{
+  #define BC_CORE_RETURN(STATUS) coreResult = (STATUS); goto CORE_EXIT
 
-  #undef BC_CORE_RETURN
-CORE_EXIT:
+  if ((core == NULL) || (code == NULL))
+  {
+    return BC_INVALID_ARG;
+  }
+
+  bcTree_t* tree = NULL;
+  bcStatus_t coreResult = bcParseString(code, &tree, endp, &core->parseContext);
+  if (coreResult != BC_OK)
+  {
+    return coreResult;
+  }
+
+  bcCodeStream_t codeStream;
+  coreResult = bcCodeStreamInit(&codeStream);
+  if (coreResult != BC_OK)
+  {
+    bcTreeCleanup(tree);
+    return coreResult;
+  }
+
+  coreResult = bcCodeStreamCompile(&codeStream, tree);
+  if (coreResult != BC_OK)
+  {
+    bcTreeCleanup(tree);
+    bcCodeStreamCleanup(&codeStream);
+    return coreResult;
+  }
+
+  bcTreeCleanup(tree);
+
+  coreResult = bcCodeStreamExecute(core, &codeStream);
   bcCodeStreamCleanup(&codeStream);
   return coreResult;
 }
@@ -972,6 +1018,40 @@ bcStatus_t bcCodeStreamProduce(bcCodeStream_t* cs, const bcTreeItem_t* item)
         }
       }
       break;
+    case TIT_IF_STATEMENT:
+      {
+        bcIfStatement_t* ifstat = (bcIfStatement_t*) cursor;
+        BC_VALUE compiledBody = bcValueCode(ifstat->body);
+        if (compiledBody == NULL)
+        {
+          return BC_NO_MEMORY;
+        }
+
+        uint8_t conCode;
+        bcStatus_t status = bcCodeStreamAppendConstant(cs, compiledBody, &conCode);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+
+        status = bcCodeStreamProduce(cs, ifstat->cond);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+
+        status = bcCodeStreamAppendOpcode(cs, BC_IFS);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+        status = bcCodeStreamAppendOpcode(cs, conCode);
+        if (status != BC_OK)
+        {
+          return status;
+        }
+      }
+      break;
     default:
       return BC_NOT_IMPLEMENTED;
     }
@@ -993,4 +1073,74 @@ bcStatus_t bcCodeStreamCompile(bcCodeStream_t* cs, const bcTree_t* tree)
   }
 
   return bcCodeStreamAppendOpcode(cs, BC_HALT);
+}
+
+BC_VALUE bcValueCode(const bcTree_t* parseTree)
+{
+  bcCode_t* result = (bcCode_t*) malloc(sizeof(bcCode_t));
+  if (result == NULL)
+  {
+    return NULL;
+  }
+
+  result->head.type = BC_CODE;
+  result->head.refCount = 1;
+
+  bcStatus_t status = bcCodeStreamInit(&result->code);
+  if (status != BC_OK)
+  {
+    free(result);
+    return NULL;
+  }
+
+  status = bcCodeStreamCompile(&result->code, parseTree);
+  if (status != BC_OK)
+  {
+    bcCodeStreamCleanup(&result->code);
+    free(result);
+    return NULL;
+  }
+
+  return &result->head;
+}
+
+BCAPI const char* bcStatusString(bcStatus_t status)
+{
+  switch (status)
+  {
+    case BC_OK:
+      return "OK";
+    case BC_INVALID_ARG:
+      return "INVALID_ARG";
+    case BC_NOT_IMPLEMENTED:
+      return "NOT_IMPLEMENTED";
+    case BC_NO_MEMORY:
+      return "NO_MEMORY";
+    case BC_TOO_MANY_CONSTANTS:
+      return "TOO_MANY_CONSTANTS";
+    case BC_UNDERFLOW:
+      return "UNDERFLOW";
+    case BC_OVERFLOW:
+      return "OVERFLOW";
+    case BC_MALFORMED_CODE:
+      return "MALFORMED_CODE";
+    case BC_CONST_NOT_FOUND:
+      return "CONST_NOT_FOUND";
+    case BC_HALT_EXPECTED:
+      return "HALT_EXPECTED";
+    case BC_DIVIDE_BY_ZERO:
+      return "DIVIDE_BY_ZERO";
+    case BC_CANT_CONVERT:
+      return "CANT_CONVERT";
+    case BC_TOO_SMALL:
+      return "TOO_SMALL";
+    case BC_INVALID_ID:
+      return "INVALID_ID";
+    case BC_NOT_DEFINED:
+      return "NOT_DEFINED";
+    case BC_PARSE_NOT_FINISHED:
+      return "PARSE_NOT_FINISHED";
+    default:
+      return "???";
+  }
 }

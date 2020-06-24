@@ -59,7 +59,7 @@ bcStatus_t bcTreeItemCleanup(bcTreeItem_t* treeItem)
         {
           return status;
         }
-        status = bcTreeItemCleanup(ifstate->body);
+        status = bcTreeCleanup(ifstate->body);
         if (status != BC_OK)
         {
           return status;
@@ -168,7 +168,7 @@ bcTreeItem_t* bcIfStatement(bcTreeItem_t* cond, bcTreeItem_t* body)
   result->head.next = NULL;
 
   result->cond = cond;
-  result->body = body;
+  result->body = bcTree(body);
   return &result->head;
 }
 

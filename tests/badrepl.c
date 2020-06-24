@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 
     if (status != BC_OK)
     {
-      fprintf(stderr, "Error: %d\n", status);
+      fprintf(stderr, "Error: %s (%d)\n", bcStatusString(status), status);
       fprintf(stdout, "%s", ">>> ");
       fflush(stdout);
       continue;

@@ -40,17 +40,17 @@ typedef struct bcConstant_t
   BC_VALUE constVal;
 } bcConstant_t;
 
-typedef struct bcIfStatement_t
-{
-  bcTreeItem_t head;
-  bcTreeItem_t* cond;
-  bcTreeItem_t* body;
-} bcIfStatement_t;
-
 typedef struct bcTree_t
 {
   bcTreeItem_t* root;
 } bcTree_t;
+
+typedef struct bcIfStatement_t
+{
+  bcTreeItem_t head;
+  bcTreeItem_t* cond;
+  bcTree_t* body;
+} bcIfStatement_t;
 
 bcStatus_t bcTreeItemCleanup(bcTreeItem_t* treeItem);
 

@@ -84,10 +84,7 @@ rightExpr(RESULT) ::= leftExpr(BR). {
 }
 
 leftExpr(RESULT) ::= ID(NAME). {
-  RESULT = bcUnOp(
-    bcConstant(NAME),
-    BC_PSH
-  );
+  RESULT = bcConstant(NAME),
   bcValueCleanup(NAME);
 }
 
@@ -125,7 +122,7 @@ leftExpr(RESULT) ::= ID(NAME). {
     BC_VALUE tmptok = NULL;
     const char* cursor = str;
 
-    ParseTrace(stderr, "trace: ");
+//    ParseTrace(stderr, "trace: ");
 
     //
     // I didn't found info on how properly raise internal errors from parser,

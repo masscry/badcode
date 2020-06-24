@@ -22,6 +22,13 @@ BCAPI bcStatus_t bcValueCleanup(BC_VALUE value)
     case BC_STRING:
       free(value);
       return BC_OK;
+    case BC_CODE:
+      {
+        bcCode_t* code = (bcCode_t*) value;
+        bcCodeStreamCleanup(&code->code);
+        free(code);
+      }
+      return BC_OK;
     default:
       return BC_NOT_IMPLEMENTED;
     }

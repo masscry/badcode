@@ -78,6 +78,7 @@ typedef enum bcOp_t
   BC_NUM, /**< (num) A */
   BC_STR, /**< (str) A */
   BC_VAL, /**< ValueOf(A) */
+  BC_IFS, /**< Check call */
   BC_IND, /**< A[B] */
   BC_ADR, /**< &A */
   BC_ITM, /**< A.B */
@@ -117,6 +118,12 @@ typedef struct bcParseContext_t
   uint8_t indentStack[64];
   uint8_t* indentTop;
 } bcParseContext_t;
+
+typedef struct bcCode_t
+{
+  bcValue_t head;
+  bcCodeStream_t code;
+} bcCode_t;
 
 /**
  * Interprerer evaluation core.
@@ -241,5 +248,10 @@ int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseCont
  *    BC_OK - if parsing completed successfully
  */
 bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, bcParseContext_t* parseContext);
+
+/**
+ * Compile code stream to value.
+ */
+BC_VALUE bcValueCode(const bcTree_t* parseTree);
 
 #endif /* DECI_SPACE_BADCODE_PRIVATE_HEADER */

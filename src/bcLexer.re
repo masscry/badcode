@@ -46,14 +46,14 @@
 #include <string.h>
 #include <assert.h>
 
-static int bcCountSpaces(const char* head)
+const char* AfterSpaces(const char* head)
 {
-  const char* cursor = head;
-  while(*cursor == ' ')
+  assert(head != NULL);
+  while((*head == ' ') || (*head == '\t'))
   {
-    ++cursor;
+    ++head;
   }
-  return (int)(cursor - head);
+  return head;
 }
 
 int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseContext_t* parseContext)
@@ -64,12 +64,10 @@ int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseCont
   const uint8_t* YYMARKER; // inner lexer variable is used when there can be longer string to match
   const uint8_t* YYCURSOR = (const uint8_t*) head; // initialize cursor to first character position
 
-  // spaces are ignored later in parser, here we count indent and issuing tokens
-  // if needed
-
   if (parseContext->newline != 0)
   {
-    int newIndent = bcCountSpaces(head);
+    const char* afterSpaces = AfterSpaces(head);
+    int newIndent = afterSpaces - head;
 
     if (newIndent > *parseContext->indentTop)
     {
@@ -93,8 +91,8 @@ int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseCont
       return TOK_DEDENT;
     }
     parseContext->newline = 0;
+    head = afterSpaces;
   }
-
 
 GET_NEXT_TOKEN: // jump to this label, if processed token is skipped (like spaces)
   /*!re2c

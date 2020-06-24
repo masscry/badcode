@@ -22,6 +22,7 @@ typedef enum bcDataType_t
   BC_REF,            /**< Reference */
   BC_FUNC,           /**< Interpretable function */
   BC_NATIVE,         /**< Native C-function */
+  BC_CODE,           /**< Code block */
   BC_DATA_TYPE_TOTAL
 } bcDataType_t;
 
@@ -88,6 +89,7 @@ typedef struct bcNameDict_t
   char* name;
   uint32_t index;
 } bcNameDict_t;
+
 
 #endif /* DECI_SPACE_BADCODE_VALUE_HEADER */
 

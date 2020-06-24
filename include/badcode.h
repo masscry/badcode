@@ -78,6 +78,8 @@ typedef enum bcStatus_t
   BC_STATUS_TOTAL        /**< Total status codes */
 } bcStatus_t;
 
+BCAPI const char* bcStatusString(bcStatus_t status);
+
 /**
  * Version of loaded BadCode library.
  */
