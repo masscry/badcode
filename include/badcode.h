@@ -75,6 +75,7 @@ typedef enum bcStatus_t
   BC_INVALID_ID,         /**< Invalid ID */
   BC_NOT_DEFINED,        /**< Variable is not defined */
   BC_PARSE_NOT_FINISHED, /**< More input expected */
+  BC_EMPTY_EXPR,         /**< Empty expression */
   BC_STATUS_TOTAL        /**< Total status codes */
 } bcStatus_t;
 
@@ -120,6 +121,8 @@ BCAPI bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp);
  * @param pVal[out] pointer where to store value from stack.
  */
 BCAPI bcStatus_t bcCoreTop(const BC_CORE core, BC_VALUE* pVal);
+
+BCAPI bcStatus_t bcCoreResult(const BC_CORE core, BC_VALUE* pVal);
 
 /**
  * Remove value from stack.

@@ -79,6 +79,8 @@ typedef enum bcOp_t
   BC_STR, /**< (str) A */
   BC_VAL, /**< ValueOf(A) */
   BC_IFS, /**< Check call */
+  BC_RET, /**< Set result value */
+  BC_CPY, /**< Copy value on stack to top */
   BC_IND, /**< A[B] */
   BC_ADR, /**< &A */
   BC_ITM, /**< A.B */
@@ -137,6 +139,7 @@ struct bcCore_t
   BC_GLOBAL* globals;
 
   bcParseContext_t parseContext;
+  BC_VALUE result;
 };
 
 bcStatus_t bcCoreSetGlobal(

@@ -84,7 +84,7 @@ bcStatus_t bcTreeCleanup(bcTree_t* tree)
 
   bcStatus_t status = bcTreeItemCleanup(tree->root);
   free(tree);
-  return BC_OK;
+  return status;
 }
 
 bcTreeItem_t* bcBinOp(bcTreeItem_t* lbr, bcTreeItem_t* rbr, int tag)

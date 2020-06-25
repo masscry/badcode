@@ -38,37 +38,44 @@ int main(int argc, char* argv[])
   
   if (input == stdin)
   {
-    fprintf(stdout, "%s", ">>> ");
+    fprintf(stdout, "%s", "? ");
     fflush(stdout);
   }
 
   while ((nread = getline(&line, &len, input)) != -1) 
   {
     status = bcCoreExecute(core, line, NULL);
-    if (status == BC_PARSE_NOT_FINISHED)
+    switch (status)
     {
-      fprintf(stdout, "%s", "... ");
+    case BC_OK:
+      break;
+    case BC_PARSE_NOT_FINISHED:
+      fprintf(stdout, "%s", "~ ");
+      fflush(stdout);
+      continue;
+    case BC_EMPTY_EXPR:
+      fprintf(stdout, "%s", "? ");
+      fflush(stdout);
+      continue;
+    default:
+      fprintf(stderr, "! %s (%d)\n", bcStatusString(status), status);
+      fprintf(stdout, "%s", "? ");
       fflush(stdout);
       continue;
     }
 
-    if (status != BC_OK)
+    BC_VALUE result = NULL;
+    if (bcCoreResult(core, &result) == BC_OK)
     {
-      fprintf(stderr, "Error: %s (%d)\n", bcStatusString(status), status);
-      fprintf(stdout, "%s", ">>> ");
-      fflush(stdout);
-      continue;
+      if (result != NULL)
+      {
+        fprintf(stdout, "= ");
+        bcValuePrint(stdout, result);
+        fprintf(stdout, "\n");
+      }
     }
 
-    BC_VALUE top;
-    while(bcCoreTop(core, &top) == BC_OK)
-    {
-      bcValuePrint(stdout, top);
-      fprintf(stdout, "\n");
-      bcCorePop(core);
-    }
-
-    fprintf(stdout, "%s", ">>> ");
+    fprintf(stdout, "%s", "? ");
     fflush(stdout);
   }
 

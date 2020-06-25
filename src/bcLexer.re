@@ -67,7 +67,7 @@ int bcGetToken(const char* head, const char** tail, BC_VALUE* pData, bcParseCont
   if (parseContext->newline != 0)
   {
     const char* afterSpaces = AfterSpaces(head);
-    int newIndent = afterSpaces - head;
+    int newIndent = (int)(afterSpaces - head);
 
     if (newIndent > *parseContext->indentTop)
     {

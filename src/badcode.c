@@ -133,6 +133,7 @@ bcStatus_t bcCoreNew(BC_CORE* pCore)
 
   memset(result->parseContext.indentStack, 0, sizeof(result->parseContext.indentStack));
   result->parseContext.indentTop = result->parseContext.indentStack;
+  result->result = NULL;
 
   *pCore = result;
   return BC_OK;
@@ -142,6 +143,11 @@ void bcCoreDelete(BC_CORE core)
 {
   if (core != NULL)
   {
+    if (core->result != NULL)
+    {
+      bcValueCleanup(core->result);
+    }
+
     for (BC_GLOBAL* cursor = core->globals, *end = core->globals + core->globalSize; cursor != end; ++cursor)
     {
       bcGlobalDelete(*cursor);
@@ -590,6 +596,7 @@ static bcStatus_t bcCodeStreamExecute(BC_CORE core, const bcCodeStream_t* codeSt
       }
       break;
     case BC_POP:
+    CASE_BC_POP:
       {
         bcStatus_t status = bcValueStackPop(&core->stack);
         if (status != BC_OK)
@@ -767,9 +774,22 @@ static bcStatus_t bcCodeStreamExecute(BC_CORE core, const bcCodeStream_t* codeSt
         }
       }
       break;
+    case BC_RET:
+      {
+        if ((core->stack.top - core->stack.bottom) < 1)
+        {
+          return BC_UNDERFLOW;
+        }
+        if (core->result != NULL)
+        {
+          bcValueCleanup(core->result);
+        }
+        core->result = bcValueCopy(core->stack.top[-1]);
+        goto CASE_BC_POP;
+      }
+      break;
     default:
       fprintf(stderr, "Unknown opcode: 0x%02X\n", *cursor);
-      bcCodeStreamCleanup(&codeStream);
       return BC_NOT_IMPLEMENTED;
     }
   }
@@ -790,6 +810,12 @@ bcStatus_t bcCoreExecute(BC_CORE core, const char* code, char** endp)
   if (coreResult != BC_OK)
   {
     return coreResult;
+  }
+
+  if (tree->root == NULL)
+  {
+    bcTreeCleanup(tree);
+    return BC_EMPTY_EXPR;
   }
 
   bcCodeStream_t codeStream;
@@ -828,6 +854,17 @@ BCAPI bcStatus_t bcCoreTop(const BC_CORE core, BC_VALUE* val)
   }
 
   *val = core->stack.top[-1];
+  return BC_OK;
+}
+
+BCAPI bcStatus_t bcCoreResult(const BC_CORE core, BC_VALUE* pVal)
+{
+  if ((core == NULL) || (pVal == NULL))
+  {
+    return BC_INVALID_ARG;
+  }
+
+  *pVal = core->result;
   return BC_OK;
 }
 
@@ -950,7 +987,7 @@ bcStatus_t bcCodeStreamAppendConstant(bcCodeStream_t* cs, const BC_VALUE con, ui
   return BC_OK;  
 }
 
-bcStatus_t bcCodeStreamProduce(bcCodeStream_t* cs, const bcTreeItem_t* item)
+static bcStatus_t bcCodeStreamProduce(bcCodeStream_t* cs, const bcTreeItem_t* item)
 {
   if ((cs == NULL) || (item == NULL))
   {
@@ -978,7 +1015,7 @@ bcStatus_t bcCodeStreamProduce(bcCodeStream_t* cs, const bcTreeItem_t* item)
         if (status != BC_OK)
         {
           return status;
-        }        
+        }
       }
       break;
     case TIT_UN_OP:
@@ -1075,7 +1112,6 @@ bcStatus_t bcCodeStreamCompile(bcCodeStream_t* cs, const bcTree_t* tree)
       return result;
     }
   }
-
   return bcCodeStreamAppendOpcode(cs, BC_HALT);
 }
 

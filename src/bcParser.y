@@ -37,14 +37,14 @@
 
 program ::= statementList(LIST). { *tree = bcTree(LIST);  }
 
-statementList(RESULT) ::= statementList(HEAD) statement(TAIL). { RESULT = bcAppend(HEAD, TAIL); }
+statementList(RESULT) ::= statementList(HEAD) statement(TAIL). { if (HEAD == NULL) { RESULT = TAIL; } else { RESULT = bcAppend(HEAD, TAIL); } }
 statementList(RESULT) ::= statement(HEAD). { RESULT = HEAD; }
 
 statement(RESULT) ::= IF rightExpr(COND) BLOCK INDENT statementList(BODY) DEDENT. {
   RESULT = bcIfStatement(COND, BODY);
 }
 
-statement(RESULT) ::= rightExpr(HEAD) EXPR_END. { RESULT = HEAD; }
+statement(RESULT) ::= rightExpr(HEAD) EXPR_END. { RESULT = bcUnOp(HEAD, BC_RET); }
 statement(RESULT) ::= EXPR_END. { RESULT = NULL; }
 
 rightExpr(RESULT) ::=  leftExpr(LHS) SET rightExpr(RHS). { RESULT = bcBinOp(LHS, RHS, BC_SET); }
