@@ -147,8 +147,11 @@ add_library(badcode STATIC
 # SOURCES
   src/badcode.c
   src/bcValue.c
+  src/bcGlobal.c
   src/bcValueStack.c
   src/bcParseTree.c
+  src/bcOpcode.c
+  src/bcCStream.c
 
 # GENERATED SOURCES
   "${CMAKE_CURRENT_BINARY_DIR}/bcParser.c"

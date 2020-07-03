@@ -257,4 +257,24 @@ bcStatus_t bcParseString(const char* str, bcTree_t** parseTree, char** endp, bcP
  */
 BC_VALUE bcValueCode(const bcTree_t* parseTree);
 
+BC_GLOBAL bcGlobalNew(const char* name, const BC_VALUE value);
+
+void bcGlobalDelete(BC_GLOBAL global);
+
+bcStatus_t bcCoreSetGlobal(BC_CORE core, const char* name, const BC_VALUE value);
+
+BC_VALUE bcCoreGetGlobal(BC_CORE core, const char* name);
+
+bcStatus_t bcValueBinaryOperatorAlgebra(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result);
+
+bcStatus_t bcValueBinaryOperatorCompare(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result);
+
+bcStatus_t bcValueBinaryOperatorLogicBitwise(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result);
+
+bcStatus_t bcValueBinaryOperator(const BC_VALUE a, const BC_VALUE b, uint8_t binop, BC_VALUE* result);
+
+bcStatus_t bcValueUnaryOperator(const BC_VALUE a, uint8_t unop, BC_VALUE* result);
+
+const char* bcOpcodeString(uint8_t opcode);
+
 #endif /* DECI_SPACE_BADCODE_PRIVATE_HEADER */
